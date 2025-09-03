@@ -15,6 +15,23 @@ export interface Order {
   updatedAt: Date;
   productionProgress: number;
   assignedOperator?: string;
+  isFragmented?: boolean;
+  fragments?: OrderFragment[];
+  totalQuantity?: number;
+}
+
+export interface OrderFragment {
+  id: string;
+  orderId: string;
+  fragmentNumber: number;
+  quantity: number;
+  scheduledDate: Date;
+  status: 'pending' | 'in_production' | 'completed';
+  progress: number;
+  value: number;
+  assignedOperator?: string;
+  startedAt?: Date;
+  completedAt?: Date;
 }
 
 export interface OrderProduct {

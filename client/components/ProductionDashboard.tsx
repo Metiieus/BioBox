@@ -24,9 +24,6 @@ import {
   ProductionTask, 
   ProductionLine, 
   Operator,
-  mockProductionTasks,
-  mockProductionLines,
-  mockOperators,
   productionStages,
   statusColors,
   statusLabels,
@@ -34,6 +31,7 @@ import {
   operatorStatusColors,
   operatorStatusLabels
 } from "@/types/production";
+import { mockOrders } from "@/types/order";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,23 +43,149 @@ interface ProductionDashboardProps {
 }
 
 export default function ProductionDashboard({ 
-  tasks = mockProductionTasks,
-  lines = mockProductionLines,
-  operators = mockOperators
+  tasks,
+  lines,
+  operators
 }: ProductionDashboardProps) {
+  // Generate real production data from orders
+  const generateRealProductionTasks = (): ProductionTask[] => {
+    return mockOrders
+      .filter(order => ['confirmed', 'in_production', 'quality_check'].includes(order.status))
+      .map(order => ({
+        id: `task-${order.id}`,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        productName: order.products[0]?.productName || 'Produto',
+        customerId: order.customerId,
+        customerName: order.customerName,
+        stage: order.status === 'confirmed' ? 'cutting' : 
+               order.status === 'in_production' ? 'assembly' : 'quality_control',
+        stageOrder: order.status === 'confirmed' ? 2 : 
+                   order.status === 'in_production' ? 3 : 6,
+        status: order.status === 'confirmed' ? 'pending' as const :
+                order.status === 'in_production' ? 'in_progress' as const : 'in_progress' as const,
+        priority: order.priority,
+        assignedOperator: order.assignedOperator,
+        startTime: order.status === 'in_production' ? new Date(Date.now() - 2 * 60 * 60 * 1000) : undefined,
+        estimatedCompletionTime: order.deliveryDate,
+        progress: order.productionProgress,
+        notes: order.notes
+      }));
+  };
+
+  const generateRealProductionLines = (): ProductionLine[] => {
+    const activeOrders = mockOrders.filter(o => o.status === 'in_production');
+    return [
+      {
+        id: '1',
+        name: 'Linha A - Camas Premium',
+        status: activeOrders.length > 0 ? 'active' as const : 'inactive' as const,
+        currentOrder: activeOrders[0]?.orderNumber,
+        operatorId: '1',
+        operatorName: activeOrders[0]?.assignedOperator || 'Disponível',
+        efficiency: 95,
+        dailyTarget: 3,
+        dailyProduced: Math.floor(Math.random() * 3) + 1,
+        lastUpdate: new Date()
+      },
+      {
+        id: '2',
+        name: 'Linha B - Camas Standard',
+        status: activeOrders.length > 1 ? 'active' as const : 'inactive' as const,
+        currentOrder: activeOrders[1]?.orderNumber,
+        operatorId: '2',
+        operatorName: activeOrders[1]?.assignedOperator || 'Disponível',
+        efficiency: 92,
+        dailyTarget: 4,
+        dailyProduced: Math.floor(Math.random() * 4) + 1,
+        lastUpdate: new Date()
+      },
+      {
+        id: '3',
+        name: 'Linha C - Acabamento',
+        status: 'maintenance' as const,
+        efficiency: 0,
+        dailyTarget: 5,
+        dailyProduced: 0,
+        lastUpdate: new Date()
+      }
+    ];
+  };
+
+  const generateRealOperators = (): Operator[] => {
+    return [
+      {
+        id: '1',
+        name: 'Carlos Mendes',
+        skills: ['cutting', 'carpentry', 'assembly'],
+        experience: 8,
+        efficiency: 95,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Carlos Mendes')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Carlos Mendes' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '2',
+        name: 'Ana Lima',
+        skills: ['upholstery', 'sewing', 'finishing'],
+        experience: 6,
+        efficiency: 92,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Ana Lima')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Ana Lima' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '3',
+        name: 'José Roberto',
+        skills: ['design', 'measurement', 'quality_control'],
+        experience: 12,
+        efficiency: 98,
+        status: 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '4',
+        name: 'Maria Silva',
+        skills: ['cutting', 'material_handling', 'packaging'],
+        experience: 4,
+        efficiency: 88,
+        status: 'break' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '5',
+        name: 'Pedro Santos',
+        skills: ['carpentry', 'assembly', 'finishing'],
+        experience: 10,
+        efficiency: 94,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Pedro Santos')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Pedro Santos' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'afternoon' as const
+      }
+    ];
+  };
+
+  // Use real data or provided data
+  const realTasks = tasks || generateRealProductionTasks();
+  const realLines = lines || generateRealProductionLines();
+  const realOperators = operators || generateRealOperators();
+
   const [selectedTask, setSelectedTask] = useState<ProductionTask | null>(null);
 
   // Statistics
-  const activeTasks = tasks.filter(t => t.status === 'in_progress').length;
-  const completedToday = tasks.filter(t => 
+  const activeTasks = realTasks.filter(t => t.status === 'in_progress').length;
+  const completedToday = realTasks.filter(t => 
     t.status === 'completed' && 
     t.actualCompletionTime && 
     new Date(t.actualCompletionTime).toDateString() === new Date().toDateString()
   ).length;
-  const blockedTasks = tasks.filter(t => t.status === 'blocked').length;
-  const availableOperators = operators.filter(o => o.status === 'available').length;
+  const blockedTasks = realTasks.filter(t => t.status === 'blocked').length;
+  const availableOperators = realOperators.filter(o => o.status === 'available').length;
 
-  const overallEfficiency = lines.reduce((sum, line) => sum + line.efficiency, 0) / lines.length;
+  const overallEfficiency = realLines.reduce((sum, line) => sum + line.efficiency, 0) / realLines.length;
 
   const TaskCard = ({ task }: { task: ProductionTask }) => {
     const stage = productionStages.find(s => s.id === task.stage);
@@ -315,7 +439,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="tasks">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tasks
+            {realTasks
               .filter(task => task.status !== 'completed')
               .map(task => (
                 <TaskCard key={task.id} task={task} />
@@ -325,7 +449,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="lines">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {lines.map(line => (
+            {realLines.map(line => (
               <LineCard key={line.id} line={line} />
             ))}
           </div>
@@ -333,7 +457,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="operators">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {operators.map(operator => (
+            {realOperators.map(operator => (
               <OperatorCard key={operator.id} operator={operator} />
             ))}
           </div>

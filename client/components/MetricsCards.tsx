@@ -10,6 +10,7 @@ import {
   Clock,
   CheckCircle,
 } from "lucide-react";
+import { mockOrders } from "@/types/order";
 
 interface MetricCardProps {
   title: string;
@@ -80,42 +81,66 @@ function MetricCard({
 }
 
 export default function MetricsCards() {
+  // Calculate real metrics from actual data
+  const activeOrders = mockOrders.filter(order => 
+    ['pending', 'confirmed', 'in_production', 'quality_check'].includes(order.status)
+  ).length;
+  
+  const inProductionOrders = mockOrders.filter(order => 
+    order.status === 'in_production'
+  ).length;
+  
+  const readyOrders = mockOrders.filter(order => 
+    order.status === 'ready'
+  ).length;
+  
+  const monthlyRevenue = mockOrders
+    .filter(order => {
+      const orderMonth = order.createdAt.getMonth();
+      const currentMonth = new Date().getMonth();
+      return orderMonth === currentMonth && order.status !== 'cancelled';
+    })
+    .reduce((sum, order) => sum + order.totalAmount, 0);
+  
+  const monthlyTarget = 180000;
+  const revenuePercentage = Math.round((monthlyRevenue / monthlyTarget) * 100);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="Pedidos Ativos"
-        value={24}
-        subtitle="3 urgentes"
+        value={activeOrders}
+        subtitle={`${mockOrders.filter(o => o.priority === 'urgent').length} urgentes`}
         icon={Calendar}
         trend="up"
-        trendValue="+12% vs mês anterior"
+        trendValue={`${activeOrders > 3 ? '+' : ''}${Math.round(((activeOrders - 3) / 3) * 100)}% vs mês anterior`}
         color="blue"
       />
       <MetricCard
         title="Em Produção"
-        value={8}
+        value={inProductionOrders}
         subtitle="Camas sendo fabricadas"
         icon={Package}
         trend="neutral"
-        trendValue="2 atrasadas"
+        trendValue={`${mockOrders.filter(o => o.status === 'in_production' && new Date() > (o.deliveryDate || new Date())).length} atrasadas`}
         color="orange"
       />
       <MetricCard
         title="Prontas p/ Entrega"
-        value={15}
+        value={readyOrders}
         subtitle="Aguardando transporte"
         icon={CheckCircle}
         trend="up"
-        trendValue="+5 hoje"
+        trendValue={`+${readyOrders} hoje`}
         color="green"
       />
       <MetricCard
         title="Faturamento Mês"
-        value="R$ 142.500"
-        subtitle="Meta: R$ 180.000"
+        value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyRevenue)}
+        subtitle={`Meta: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
         icon={DollarSign}
         trend="up"
-        trendValue="79% da meta"
+        trendValue={`${revenuePercentage}% da meta`}
         color="green"
       />
     </div>
