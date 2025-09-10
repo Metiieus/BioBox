@@ -155,7 +155,7 @@ export const mockOrders: Order[] = [
     customerName: 'João Silva',
     status: 'in_production',
     priority: 'medium',
-    totalAmount: 4200.00,
+    totalAmount: 3750.00,
     scheduledDate: new Date('2024-12-20'),
     deliveryDate: new Date('2024-12-25'),
     createdAt: new Date('2024-12-10'),
@@ -232,7 +232,7 @@ export const mockOrders: Order[] = [
     customerName: 'Maria Santos',
     status: 'ready',
     priority: 'low',
-    totalAmount: 2100.00,
+    totalAmount: 1800.00,
     scheduledDate: new Date('2024-12-15'),
     deliveryDate: new Date('2024-12-22'),
     completedDate: new Date('2024-12-20'),
@@ -250,8 +250,8 @@ export const mockOrders: Order[] = [
         color: 'Cinza',
         fabric: 'Tecido',
         quantity: 1,
-        unitPrice: 2100.00,
-        totalPrice: 2100.00,
+        unitPrice: 1800.00,
+        totalPrice: 1800.00,
         specifications: {
           'Estrutura': 'Madeira MDF',
           'Cabeceira': 'Estofada',
@@ -274,6 +274,41 @@ export const mockOrders: Order[] = [
     createdAt: new Date('2024-12-14'),
     updatedAt: new Date('2024-12-14'),
     productionProgress: 0,
+    isFragmented: true,
+    totalQuantity: 6,
+    fragments: [
+      {
+        id: 'frag-4-1',
+        orderId: '4',
+        fragmentNumber: 1,
+        quantity: 2,
+        scheduledDate: new Date('2024-12-22'),
+        status: 'pending',
+        progress: 0,
+        value: 7000.00,
+        assignedOperator: 'Carlos M.'
+      },
+      {
+        id: 'frag-4-2',
+        orderId: '4',
+        fragmentNumber: 2,
+        quantity: 2,
+        scheduledDate: new Date('2024-12-28'),
+        status: 'pending',
+        progress: 0,
+        value: 7000.00
+      },
+      {
+        id: 'frag-4-3',
+        orderId: '4',
+        fragmentNumber: 3,
+        quantity: 2,
+        scheduledDate: new Date('2025-01-03'),
+        status: 'pending',
+        progress: 0,
+        value: 7000.00
+      }
+    ],
     products: [
       {
         id: '4-1',
