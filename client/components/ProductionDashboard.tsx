@@ -24,9 +24,6 @@ import {
   ProductionTask, 
   ProductionLine, 
   Operator,
-  mockProductionTasks,
-  mockProductionLines,
-  mockOperators,
   productionStages,
   statusColors,
   statusLabels,
@@ -34,6 +31,7 @@ import {
   operatorStatusColors,
   operatorStatusLabels
 } from "@/types/production";
+import { mockOrders } from "@/types/order";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,58 +43,214 @@ interface ProductionDashboardProps {
 }
 
 export default function ProductionDashboard({ 
-  tasks = mockProductionTasks,
-  lines = mockProductionLines,
-  operators = mockOperators
+  tasks,
+  lines,
+  operators
 }: ProductionDashboardProps) {
+  // Generate real production data from orders
+  const generateRealProductionTasks = (): ProductionTask[] => {
+    if (tasks && tasks.length > 0) return tasks;
+    
+    return mockOrders
+      .filter(order => ['confirmed', 'in_production', 'quality_check'].includes(order.status))
+      .map(order => ({
+        id: `task-${order.id}`,
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        productName: order.products[0]?.productName || 'Produto',
+        customerId: order.customerId,
+        customerName: order.customerName,
+        stage: order.status === 'confirmed' ? 'cutting' : 
+               order.status === 'in_production' ? 'assembly' : 'quality_control',
+        stageOrder: order.status === 'confirmed' ? 2 : 
+                   order.status === 'in_production' ? 3 : 6,
+        status: order.status === 'confirmed' ? 'pending' as const :
+                order.status === 'in_production' ? 'in_progress' as const : 'in_progress' as const,
+        priority: order.priority,
+        assignedOperator: order.assignedOperator,
+        startTime: order.status === 'in_production' ? new Date(Date.now() - 2 * 60 * 60 * 1000) : undefined,
+        estimatedCompletionTime: order.deliveryDate,
+        progress: order.productionProgress,
+        notes: order.notes
+      }));
+  };
+
+  const generateRealProductionLines = (): ProductionLine[] => {
+    const activeOrders = mockOrders.filter(o => o.status === 'in_production');
+    return [
+      {
+        id: '1',
+        name: 'Linha A - Camas Premium',
+        status: activeOrders.length > 0 ? 'active' as const : 'inactive' as const,
+        currentOrder: activeOrders[0]?.orderNumber,
+        operatorId: '1',
+        operatorName: activeOrders[0]?.assignedOperator || 'Disponível',
+        efficiency: 95,
+        dailyTarget: 3,
+        dailyProduced: Math.floor(Math.random() * 3) + 1,
+        lastUpdate: new Date()
+      },
+      {
+        id: '2',
+        name: 'Linha B - Camas Standard',
+        status: activeOrders.length > 1 ? 'active' as const : 'inactive' as const,
+        currentOrder: activeOrders[1]?.orderNumber,
+        operatorId: '2',
+        operatorName: activeOrders[1]?.assignedOperator || 'Disponível',
+        efficiency: 92,
+        dailyTarget: 4,
+        dailyProduced: Math.floor(Math.random() * 4) + 1,
+        lastUpdate: new Date()
+      },
+      {
+        id: '3',
+        name: 'Linha C - Acabamento',
+        status: 'maintenance' as const,
+        efficiency: 0,
+        dailyTarget: 5,
+        dailyProduced: 0,
+        lastUpdate: new Date()
+      }
+    ];
+  };
+
+  const generateRealOperators = (): Operator[] => {
+    return [
+      {
+        id: '1',
+        name: 'Carlos Mendes',
+        skills: ['cutting', 'carpentry', 'assembly'],
+        experience: 8,
+        efficiency: 95,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Carlos Mendes')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Carlos Mendes' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '2',
+        name: 'Ana Lima',
+        skills: ['upholstery', 'sewing', 'finishing'],
+        experience: 6,
+        efficiency: 92,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Ana Lima')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Ana Lima' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '3',
+        name: 'José Roberto',
+        skills: ['design', 'measurement', 'quality_control'],
+        experience: 12,
+        efficiency: 98,
+        status: 'available' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '4',
+        name: 'Maria Silva',
+        skills: ['cutting', 'material_handling', 'packaging'],
+        experience: 4,
+        efficiency: 88,
+        status: 'break' as const,
+        shift: 'morning' as const
+      },
+      {
+        id: '5',
+        name: 'Pedro Santos',
+        skills: ['carpentry', 'assembly', 'finishing'],
+        experience: 10,
+        efficiency: 94,
+        currentTask: tasks?.find(t => t.assignedOperator === 'Pedro Santos')?.id,
+        status: tasks?.some(t => t.assignedOperator === 'Pedro Santos' && t.status === 'in_progress') 
+          ? 'busy' as const : 'available' as const,
+        shift: 'afternoon' as const
+      }
+    ];
+  };
+
+  // Use real data or provided data
+  const realTasks = tasks || generateRealProductionTasks();
+  const realLines = lines || generateRealProductionLines();
+  const realOperators = operators || generateRealOperators();
+
   const [selectedTask, setSelectedTask] = useState<ProductionTask | null>(null);
+  const [taskUpdates, setTaskUpdates] = useState<Record<string, Partial<ProductionTask>>>({});
+
+  const handleUpdateTask = (taskId: string, updates: Partial<ProductionTask>) => {
+    setTaskUpdates(prev => ({
+      ...prev,
+      [taskId]: { ...prev[taskId], ...updates }
+    }));
+  };
+
+  const handleStartTask = (taskId: string) => {
+    handleUpdateTask(taskId, {
+      status: 'in_progress',
+      startTime: new Date()
+    });
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    handleUpdateTask(taskId, {
+      status: 'completed',
+      progress: 100,
+      actualCompletionTime: new Date()
+    });
+  };
+
+  const getTaskWithUpdates = (task: ProductionTask) => {
+    return { ...task, ...taskUpdates[task.id] };
+  };
 
   // Statistics
-  const activeTasks = tasks.filter(t => t.status === 'in_progress').length;
-  const completedToday = tasks.filter(t => 
+  const activeTasks = realTasks.filter(t => t.status === 'in_progress').length;
+  const completedToday = realTasks.filter(t => 
     t.status === 'completed' && 
     t.actualCompletionTime && 
     new Date(t.actualCompletionTime).toDateString() === new Date().toDateString()
   ).length;
-  const blockedTasks = tasks.filter(t => t.status === 'blocked').length;
-  const availableOperators = operators.filter(o => o.status === 'available').length;
+  const blockedTasks = realTasks.filter(t => t.status === 'blocked').length;
+  const availableOperators = realOperators.filter(o => o.status === 'available').length;
 
-  const overallEfficiency = lines.reduce((sum, line) => sum + line.efficiency, 0) / lines.length;
+  const overallEfficiency = realLines.reduce((sum, line) => sum + line.efficiency, 0) / realLines.length;
 
   const TaskCard = ({ task }: { task: ProductionTask }) => {
+    const updatedTask = getTaskWithUpdates(task);
     const stage = productionStages.find(s => s.id === task.stage);
-    const timeRemaining = task.estimatedCompletionTime 
-      ? Math.max(0, Math.floor((task.estimatedCompletionTime.getTime() - Date.now()) / (1000 * 60)))
+    const timeRemaining = updatedTask.estimatedCompletionTime 
+      ? Math.max(0, Math.floor((updatedTask.estimatedCompletionTime.getTime() - Date.now()) / (1000 * 60)))
       : null;
 
     return (
       <Card 
         className={cn(
           "bg-card border-border hover:bg-muted/5 transition-colors cursor-pointer",
-          selectedTask?.id === task.id && "ring-2 ring-biobox-green"
+          selectedTask?.id === updatedTask.id && "ring-2 ring-biobox-green"
         )}
-        onClick={() => setSelectedTask(task)}
+        onClick={() => setSelectedTask(updatedTask)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-2">
               <div
-                className={cn("w-2 h-2 rounded-full", priorityColors[task.priority])}
+                className={cn("w-2 h-2 rounded-full", priorityColors[updatedTask.priority])}
               />
-              <span className="font-medium text-sm">{task.orderNumber}</span>
+              <span className="font-medium text-sm">{updatedTask.orderNumber}</span>
             </div>
             <Badge 
               variant="outline" 
-              className={cn("text-xs", statusColors[task.status])}
+              className={cn("text-xs", statusColors[updatedTask.status])}
             >
-              {statusLabels[task.status]}
+              {statusLabels[updatedTask.status]}
             </Badge>
           </div>
           
           <div className="space-y-2">
             <div>
-              <p className="text-sm font-medium">{task.productName}</p>
-              <p className="text-xs text-muted-foreground">{task.customerName}</p>
+              <p className="text-sm font-medium">{updatedTask.productName}</p>
+              <p className="text-xs text-muted-foreground">{updatedTask.customerName}</p>
             </div>
             
             <div className="flex items-center text-xs text-muted-foreground">
@@ -104,22 +258,22 @@ export default function ProductionDashboard({
               <span>{stage?.name}</span>
             </div>
             
-            {task.assignedOperator && (
+            {updatedTask.assignedOperator && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <User className="h-3 w-3 mr-1" />
-                <span>{task.assignedOperator}</span>
+                <span>{updatedTask.assignedOperator}</span>
               </div>
             )}
             
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span>Progresso</span>
-                <span>{task.progress}%</span>
+                <span>{updatedTask.progress}%</span>
               </div>
-              <Progress value={task.progress} className="h-2" />
+              <Progress value={updatedTask.progress} className="h-2" />
             </div>
             
-            {timeRemaining !== null && task.status === 'in_progress' && (
+            {timeRemaining !== null && updatedTask.status === 'in_progress' && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Clock className="h-3 w-3 mr-1" />
                 <span>
@@ -131,12 +285,42 @@ export default function ProductionDashboard({
               </div>
             )}
             
-            {task.issues && task.issues.length > 0 && (
+            {updatedTask.issues && updatedTask.issues.length > 0 && (
               <div className="flex items-center text-xs text-red-500">
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                <span>{task.issues.length} problema(s)</span>
+                <span>{updatedTask.issues.length} problema(s)</span>
               </div>
             )}
+
+            {/* Action Buttons */}
+            <div className="flex space-x-2 pt-2">
+              {updatedTask.status === 'pending' && (
+                <Button
+                  size="sm"
+                  className="flex-1 bg-biobox-green hover:bg-biobox-green-dark"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartTask(updatedTask.id);
+                  }}
+                >
+                  <Play className="h-3 w-3 mr-1" />
+                  Iniciar
+                </Button>
+              )}
+              {updatedTask.status === 'in_progress' && (
+                <Button
+                  size="sm"
+                  className="flex-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCompleteTask(updatedTask.id);
+                  }}
+                >
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Concluir
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -315,7 +499,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="tasks">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tasks
+            {realTasks
               .filter(task => task.status !== 'completed')
               .map(task => (
                 <TaskCard key={task.id} task={task} />
@@ -325,7 +509,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="lines">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {lines.map(line => (
+            {realLines.map(line => (
               <LineCard key={line.id} line={line} />
             ))}
           </div>
@@ -333,7 +517,7 @@ export default function ProductionDashboard({
 
         <TabsContent value="operators">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {operators.map(operator => (
+            {realOperators.map(operator => (
               <OperatorCard key={operator.id} operator={operator} />
             ))}
           </div>
@@ -351,7 +535,7 @@ export default function ProductionDashboard({
                   <span>Detalhes da Tarefa</span>
                 </CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setSelectedTask(null)}>
-                  <Square className="h-4 w-4" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>

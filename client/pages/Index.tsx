@@ -3,18 +3,24 @@ import MetricsCards from "@/components/MetricsCards";
 import ProductionChart from "@/components/ProductionChart";
 import RecentActivity from "@/components/RecentActivity";
 import ProductionOverview from "@/components/ProductionOverview";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Index() {
+  const { user } = useAuth();
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Bem-vindo ao BioBoxsys
+            Bem-vindo ao BioBoxsys, {user?.name.split(' ')[0]}
           </h1>
           <p className="text-muted-foreground">
             Sistema de Gerenciamento de Produção de Camas
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Logado como: {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}
           </p>
         </div>
 

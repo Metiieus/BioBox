@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -33,6 +34,24 @@ const navigation = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { user, hasPermission, logout } = useAuth();
+
+  // Filter navigation based on user permissions
+  const filteredNavigation = navigation.filter(item => {
+    if (!user) return false;
+    
+    const moduleMap: Record<string, string> = {
+      '/': 'dashboard',
+      '/customers': 'customers',
+      '/orders': 'orders',
+      '/production': 'production',
+      '/products': 'products',
+      '/settings': 'settings'
+    };
+    
+    const module = moduleMap[item.href];
+    return module ? hasPermission(module, 'view') : false;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,7 +94,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Navigation */}
           <ScrollArea className="flex-1 px-3 py-4">
             <nav className="space-y-1">
-              {navigation.map((item) => {
+              {filteredNavigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <Link
@@ -98,21 +117,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* User Profile */}
           <div className="border-t border-sidebar-border p-4">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="bg-biobox-green text-biobox-dark text-xs font-medium">
-                  AD
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  Administrator
-                </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  Gerente de Produção
-                </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src="/placeholder.svg" />
+                  <AvatarFallback className="bg-biobox-green text-biobox-dark text-xs font-medium">
+                    {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {user?.name || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                  </p>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={logout}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -149,7 +178,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback className="bg-biobox-green text-biobox-dark text-xs font-medium">
-                  AD
+                  {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
             </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import OrderForm from "@/components/OrderForm";
 import ProductionCalendar from "@/components/ProductionCalendar";
+import FragmentProgress from "@/components/FragmentProgress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,19 +22,84 @@ import {
   AlertTriangle,
   CheckCircle,
   User,
-  TrendingUp
+  TrendingUp,
+  Square
 } from "lucide-react";
 import { Order, mockOrders, statusLabels, statusColors, priorityColors } from "@/types/order";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+// Quick Calendar Component
+interface QuickCalendarProps {
+  orders: Order[];
+  onDateClick?: (date: Date) => void;
+  className?: string;
+}
+
+function QuickCalendar({ orders, onDateClick, className }: QuickCalendarProps) {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
+  const today = new Date();
+  const todayOrders = orders.filter(order => 
+    isSameDay(order.scheduledDate, today) || 
+    (order.deliveryDate && isSameDay(order.deliveryDate, today))
+  );
+
+  return (
+    <Card className={cn("bg-card border-border", className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center space-x-2">
+          <CalendarIcon className="h-4 w-4" />
+          <span>Hoje</span>
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {format(today, "dd 'de' MMMM", { locale: ptBR })}
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {todayOrders.length > 0 ? (
+          <div className="space-y-2">
+            {todayOrders.slice(0, 3).map(order => (
+              <div key={order.id} className="p-2 border border-border rounded text-xs">
+                <div className="font-medium">{order.orderNumber}</div>
+                <div className="text-muted-foreground truncate">{order.customerName}</div>
+                <Badge 
+                  variant="outline" 
+                  className={cn("text-xs mt-1", statusColors[order.status])}
+                >
+                  {statusLabels[order.status]}
+                </Badge>
+              </div>
+            ))}
+            {todayOrders.length > 3 && (
+              <div className="text-xs text-muted-foreground text-center">
+                +{todayOrders.length - 3} mais...
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <CalendarIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">
+              Nenhum pedido para hoje
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [showForm, setShowForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | undefined>();
+  const [selectedFragmentOrder, setSelectedFragmentOrder] = useState<Order | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | Order['status']>("all");
+  const { hasPermission } = useAuth();
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -72,6 +138,46 @@ export default function Orders() {
     setShowForm(true);
   };
 
+  const handleViewFragments = (order: Order) => {
+    setSelectedFragmentOrder(order);
+  };
+
+  const handleUpdateFragment = (fragmentId: string, updates: any) => {
+    if (!selectedFragmentOrder) return;
+
+    setOrders(prev => prev.map(order => {
+      if (order.id === selectedFragmentOrder.id && order.fragments) {
+        const updatedFragments = order.fragments.map(fragment =>
+          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
+        );
+        
+        // Update order progress based on fragments
+        const totalProgress = updatedFragments.reduce((sum, f) => sum + f.progress, 0) / updatedFragments.length;
+        const allCompleted = updatedFragments.every(f => f.status === 'completed');
+        
+        return {
+          ...order,
+          fragments: updatedFragments,
+          productionProgress: totalProgress,
+          status: allCompleted ? 'ready' as const : order.status,
+          updatedAt: new Date()
+        };
+      }
+      return order;
+    }));
+
+    // Update selected order for real-time UI updates
+    setSelectedFragmentOrder(prev => {
+      if (!prev || !prev.fragments) return prev;
+      return {
+        ...prev,
+        fragments: prev.fragments.map(fragment =>
+          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
+        )
+      };
+    });
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -87,7 +193,9 @@ export default function Orders() {
   const totalOrders = orders.length;
   const pendingOrders = orders.filter(o => o.status === 'pending').length;
   const inProductionOrders = orders.filter(o => o.status === 'in_production').length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+  const totalRevenue = orders
+    .filter(o => o.status !== 'cancelled')
+    .reduce((sum, order) => sum + order.totalAmount, 0);
 
   return (
     <DashboardLayout>
@@ -107,15 +215,18 @@ export default function Orders() {
               }).length} hoje</span>
               <span>🔄 {inProductionOrders} em produção</span>
               <span>⏳ {pendingOrders} pendentes</span>
+              <span>📦 {orders.filter(o => o.isFragmented).length} fragmentados</span>
             </div>
           </div>
-          <Button
-            className="bg-biobox-green hover:bg-biobox-green-dark"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Pedido
-          </Button>
+          {hasPermission('orders', 'create') && (
+            <Button
+              className="bg-biobox-green hover:bg-biobox-green-dark"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Pedido
+            </Button>
+          )}
         </div>
 
         {/* Quick Calendar and Stats Cards */}
@@ -230,6 +341,13 @@ export default function Orders() {
                       >
                         Em Produção
                       </Button>
+                      <Button
+                        variant={statusFilter === "ready" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStatusFilter("ready")}
+                      >
+                        Prontos
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -277,10 +395,18 @@ export default function Orders() {
                         <TableCell>
                           <div className="text-sm">
                             {order.products.length} produto(s)
+                            {order.isFragmented && (
+                              <Badge variant="outline" className="ml-2 text-xs bg-purple-500/10 text-purple-500 border-purple-500/20">
+                                Fragmentado
+                              </Badge>
+                            )}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {order.products[0]?.productName}
                             {order.products.length > 1 && ` +${order.products.length - 1}`}
+                            {order.totalQuantity && (
+                              <span className="block">Total: {order.totalQuantity} unidades</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -309,15 +435,47 @@ export default function Orders() {
                         </TableCell>
                         <TableCell>
                           <div className="font-medium">{formatCurrency(order.totalAmount)}</div>
+                          {order.isFragmented && order.fragments && (
+                            <div className="text-xs text-muted-foreground">
+                              Liberado: {formatCurrency(
+                                order.fragments
+                                  .filter(f => f.status === 'completed')
+                                  .reduce((sum, f) => sum + f.value, 0)
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditOrder(order)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            {hasPermission('orders', 'edit') && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditOrder(order)}
+                                title="Editar pedido"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {order.isFragmented && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewFragments(order)}
+                                title="Ver fragmentos"
+                              >
+                                <Package className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => console.log('Ver detalhes:', order)}
+                              title="Ver detalhes"
+                            >
+                              <TrendingUp className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -329,7 +487,7 @@ export default function Orders() {
         </Tabs>
 
         {/* Order Form Modal */}
-        {showForm && (
+        {showForm && hasPermission('orders', 'create') && (
           <OrderForm
             order={selectedOrder}
             onSave={handleSaveOrder}
@@ -338,6 +496,35 @@ export default function Orders() {
               setSelectedOrder(undefined);
             }}
           />
+        )}
+
+        {/* Fragment Progress Modal */}
+        {selectedFragmentOrder && selectedFragmentOrder.fragments && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-card border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Package className="h-5 w-5" />
+                    <span>Fragmentos - {selectedFragmentOrder.orderNumber}</span>
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSelectedFragmentOrder(undefined)}
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <FragmentProgress
+                  fragments={selectedFragmentOrder.fragments}
+                  onUpdateFragment={handleUpdateFragment}
+                />
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
     </DashboardLayout>

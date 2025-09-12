@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BarcodeGenerator from "@/components/BarcodeGenerator";
+import UserManagement from "@/components/UserManagement";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,21 +100,49 @@ export default function Settings() {
 
   const handleSaveUserSettings = () => {
     // Simulate save
+    console.log('Salvando configurações do usuário:', userSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleSaveSystemSettings = () => {
     // Simulate save
+    console.log('Salvando configurações do sistema:', systemSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleBackup = () => {
+    // Simulate backup creation
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      data: {
+        orders: 'encrypted_orders_data',
+        customers: 'encrypted_customers_data',
+        products: 'encrypted_products_data',
+        users: 'encrypted_users_data'
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { 
+      type: 'application/json' 
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bioboxsys-backup-${format(new Date(), "yyyy-MM-dd-HHmm")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
     setSystemSettings(prev => ({
       ...prev,
       lastBackup: new Date()
     }));
+
+    console.log('Backup criado com sucesso');
   };
 
   return (
@@ -137,10 +166,11 @@ export default function Settings() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="notifications">Notificações</TabsTrigger>
             <TabsTrigger value="system">Sistema</TabsTrigger>
+            <TabsTrigger value="users">Usuários</TabsTrigger>
             <TabsTrigger value="barcode">Códigos</TabsTrigger>
             <TabsTrigger value="backup">Backup</TabsTrigger>
           </TabsList>
@@ -464,6 +494,10 @@ export default function Settings() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="barcode">

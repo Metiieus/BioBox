@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { X, Save, Plus, Trash2, Calendar as CalendarIcon, User } from "lucide-react";
-import { Order, OrderProduct, mockProducts } from "@/types/order";
+import { X, Save, Plus, Trash2, Calendar as CalendarIcon, User, Package } from "lucide-react";
+import { Order, OrderProduct, OrderFragment, mockProducts } from "@/types/order";
 import { Customer, mockCustomers } from "@/types/customer";
+import OrderFragmentForm from "@/components/OrderFragmentForm";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,6 +44,9 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
     quantity: 1,
     specifications: {} as Record<string, string>
   });
+  const [fragments, setFragments] = useState<OrderFragment[]>([]);
+  const [showFragmentForm, setShowFragmentForm] = useState(false);
+  const [fragmentData, setFragmentData] = useState<{ quantity: number; value: number } | null>(null);
 
   const selectedCustomer = mockCustomers.find(c => c.id === formData.customerId);
   const selectedProduct = mockProducts.find(p => p.id === newProduct.productId);
@@ -50,7 +54,27 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
 
   const calculateProductPrice = () => {
     if (!selectedProduct || !selectedModel) return 0;
-    return selectedProduct.basePrice * selectedModel.priceModifier * newProduct.quantity;
+    
+    let basePrice = selectedProduct.basePrice;
+    
+    // Aplicar modificador do modelo
+    basePrice *= selectedModel.priceModifier;
+    
+    // Aplicar modificadores de tamanho (se disponível)
+    const sizeModifier = selectedModel.sizes?.find(s => s === newProduct.size) ? 1.0 : 1.0;
+    
+    // Aplicar modificadores baseados no tamanho
+    if (newProduct.size === 'Solteiro') basePrice *= 0.8;
+    else if (newProduct.size === 'Queen') basePrice *= 1.2;
+    else if (newProduct.size === 'King') basePrice *= 1.5;
+    else if (newProduct.size === 'Super King') basePrice *= 1.8;
+    
+    // Aplicar modificadores de tecido
+    if (newProduct.fabric === 'Veludo Premium' || newProduct.fabric === 'Couro') basePrice *= 1.3;
+    else if (newProduct.fabric === 'Tecido Premium') basePrice *= 1.1;
+    else if (newProduct.fabric === 'Courino Premium') basePrice *= 1.05;
+    
+    return Math.round(basePrice * newProduct.quantity);
   };
 
   const calculateTotalAmount = () => {
@@ -100,16 +124,21 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const orderData = {
+    const finalOrderData = {
       ...formData,
       orderNumber: order?.orderNumber || `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`,
       totalAmount: calculateTotalAmount(),
       productionProgress: order?.productionProgress || 0,
       createdAt: order?.createdAt || new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      isFragmented: fragments.length > 0,
+      fragments: fragments.length > 0 ? fragments : undefined,
+      totalQuantity: fragments.length > 0 
+        ? fragments.reduce((sum, f) => sum + f.quantity, 0)
+        : formData.products?.reduce((sum, p) => sum + p.quantity, 0)
     };
 
-    onSave(orderData);
+    onSave(finalOrderData);
   };
 
   const handleCustomerSelect = (customerId: string) => {
@@ -119,6 +148,22 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
       customerId,
       customerName: customer?.name || ''
     }));
+  };
+
+  const handleFragmentProduction = () => {
+    const totalQuantity = formData.products.reduce((sum, product) => sum + product.quantity, 0);
+    const totalValue = calculateTotalAmount();
+    
+    if (totalQuantity >= 10) { // Only allow fragmentation for orders with 10+ items
+      setFragmentData({ quantity: totalQuantity, value: totalValue });
+      setShowFragmentForm(true);
+    }
+  };
+
+  const handleSaveFragments = (orderFragments: OrderFragment[]) => {
+    setFragments(orderFragments);
+    setShowFragmentForm(false);
+    setFragmentData(null);
   };
 
   const formatCurrency = (value: number) => {
@@ -356,7 +401,20 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
             {formData.products.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Produtos do Pedido</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Produtos do Pedido</CardTitle>
+                    {formData.products.reduce((sum, p) => sum + p.quantity, 0) >= 10 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleFragmentProduction}
+                      >
+                        <Package className="h-4 w-4 mr-2" />
+                        Fragmentar Produção
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -383,6 +441,28 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
                       <span className="font-medium">Total do Pedido:</span>
                       <span className="text-lg font-bold">{formatCurrency(calculateTotalAmount())}</span>
                     </div>
+                    {fragments.length > 0 && (
+                      <div className="pt-3 border-t border-border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">Produção Fragmentada:</span>
+                          <Badge className="bg-biobox-green/10 text-biobox-green border-biobox-green/20">
+                            {fragments.length} fragmentos
+                          </Badge>
+                        </div>
+                        <div className="space-y-2">
+                          {fragments.map((fragment, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span>
+                                Fragmento {fragment.fragmentNumber}: {fragment.quantity} unidades
+                              </span>
+                              <span className="font-medium">
+                                {formatCurrency(fragment.value)} - {format(fragment.scheduledDate, "dd/MM", { locale: ptBR })}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -416,6 +496,19 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
           </form>
         </CardContent>
       </Card>
+
+      {/* Fragment Form Modal */}
+      {showFragmentForm && fragmentData && (
+        <OrderFragmentForm
+          totalQuantity={fragmentData.quantity}
+          totalValue={fragmentData.value}
+          onSave={handleSaveFragments}
+          onCancel={() => {
+            setShowFragmentForm(false);
+            setFragmentData(null);
+          }}
+        />
+      )}
     </div>
   );
 }

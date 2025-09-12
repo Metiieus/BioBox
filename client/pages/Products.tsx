@@ -1,5 +1,7 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
+import ProductForm from "@/components/ProductForm";
+import MaterialForm from "@/components/MaterialForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,10 @@ export default function Products() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(mockRawMaterials);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showMaterialForm, setShowMaterialForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
+  const [editingMaterial, setEditingMaterial] = useState<RawMaterial | undefined>();
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,6 +73,55 @@ export default function Products() {
     p.models.some(m => m.stockQuantity <= m.minimumStock)
   ).length;
   const lowStockMaterials = rawMaterials.filter(m => m.quantity <= m.minimumStock).length;
+
+  const handleSaveProduct = (productData: Partial<Product>) => {
+    if (editingProduct) {
+      setProducts(prev => prev.map(product =>
+        product.id === editingProduct.id
+          ? { ...product, ...productData, updatedAt: new Date() }
+          : product
+      ));
+    } else {
+      const newProduct: Product = {
+        ...productData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Product;
+      setProducts(prev => [newProduct, ...prev]);
+    }
+    setShowProductForm(false);
+    setEditingProduct(undefined);
+  };
+
+  const handleSaveMaterial = (materialData: Partial<RawMaterial>) => {
+    if (editingMaterial) {
+      setRawMaterials(prev => prev.map(material =>
+        material.id === editingMaterial.id
+          ? { ...material, ...materialData, lastUpdated: new Date() }
+          : material
+      ));
+    } else {
+      const newMaterial: RawMaterial = {
+        ...materialData,
+        id: Date.now().toString(),
+        lastUpdated: new Date()
+      } as RawMaterial;
+      setRawMaterials(prev => [newMaterial, ...prev]);
+    }
+    setShowMaterialForm(false);
+    setEditingMaterial(undefined);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setShowProductForm(true);
+  };
+
+  const handleEditMaterial = (material: RawMaterial) => {
+    setEditingMaterial(material);
+    setShowMaterialForm(true);
+  };
 
   const ProductCard = ({ product }: { product: Product }) => {
     const totalStock = product.models.reduce((sum, model) => sum + model.stockQuantity, 0);
@@ -213,7 +268,14 @@ export default function Products() {
             </Button>
             <Button className="bg-biobox-green hover:bg-biobox-green-dark">
               <Plus className="h-4 w-4 mr-2" />
-              Novo Produto
+              Adicionar Produto
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowMaterialForm(true)}
+            >
+              <Box className="h-4 w-4 mr-2" />
+              Nova Matéria Prima
             </Button>
           </div>
         </div>
@@ -287,18 +349,46 @@ export default function Products() {
           </div>
 
           <TabsContent value="products">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Catálogo de Produtos</h3>
+                <Button 
+                  onClick={() => setShowProductForm(true)}
+                  className="bg-biobox-green hover:bg-biobox-green-dark"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Produto
+                </Button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredProducts.map(product => (
+                  <div key={product.id} onClick={() => handleEditProduct(product)}>
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
           <TabsContent value="materials">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredMaterials.map(material => (
-                <MaterialCard key={material.id} material={material} />
-              ))}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Matéria Prima</h3>
+                <Button 
+                  onClick={() => setShowMaterialForm(true)}
+                  className="bg-biobox-green hover:bg-biobox-green-dark"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Matéria Prima
+                </Button>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredMaterials.map(material => (
+                  <div key={material.id} onClick={() => handleEditMaterial(material)}>
+                    <MaterialCard material={material} />
+                  </div>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
@@ -460,6 +550,30 @@ export default function Products() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Product Form Modal */}
+        {showProductForm && (
+          <ProductForm
+            product={editingProduct}
+            onSave={handleSaveProduct}
+            onCancel={() => {
+              setShowProductForm(false);
+              setEditingProduct(undefined);
+            }}
+          />
+        )}
+
+        {/* Material Form Modal */}
+        {showMaterialForm && (
+          <MaterialForm
+            material={editingMaterial}
+            onSave={handleSaveMaterial}
+            onCancel={() => {
+              setShowMaterialForm(false);
+              setEditingMaterial(undefined);
+            }}
+          />
         )}
       </div>
     </DashboardLayout>

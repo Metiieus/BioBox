@@ -146,6 +146,68 @@ export default function BarcodeGenerator({ items = [], onGenerate }: BarcodeGene
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
+    // Show toast notification
+    console.log('Código copiado:', code);
+  };
+
+  const handlePrintLabels = () => {
+    if (Object.keys(generatedCodes).length === 0) {
+      console.log('Nenhum código gerado para imprimir');
+      return;
+    }
+
+    // Create print content
+    const printContent = Object.entries(generatedCodes).map(([itemId, code]) => {
+      const item = mockItems.find(i => i.id === itemId);
+      if (!item) return '';
+
+      return `
+        <div style="page-break-inside: avoid; margin: 10px; padding: 10px; border: 1px solid #ccc; text-align: center;">
+          <h3>${item.name}</h3>
+          <div style="font-family: monospace; font-size: 12px; margin: 10px 0;">
+            ${barcodeType === 'QR' ? code.replace(/\n/g, '<br>') : code}
+          </div>
+          <p style="font-size: 10px;">${item.code}</p>
+        </div>
+      `;
+    }).join('');
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Etiquetas de Código de Barras</title>
+            <style>
+              body { font-family: Arial, sans-serif; }
+              @media print {
+                body { margin: 0; }
+                .no-print { display: none; }
+              }
+            </style>
+          </head>
+          <body>
+            <h1 class="no-print">Etiquetas de Código de Barras</h1>
+            ${printContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleGenerateAll = () => {
+    setSelectedItems(mockItems.map(item => item.id));
+    const newGeneratedCodes: Record<string, string> = {};
+    mockItems.forEach(item => {
+      if (barcodeType === 'QR') {
+        newGeneratedCodes[item.id] = generateQRCode(item.code);
+      } else {
+        newGeneratedCodes[item.id] = generateBarcode(item.code, barcodeType);
+      }
+    });
+    setGeneratedCodes(newGeneratedCodes);
   };
 
   const getTypeIcon = (type: BarcodeItem['type']) => {
@@ -373,6 +435,17 @@ export default function BarcodeGenerator({ items = [], onGenerate }: BarcodeGene
                   </Card>
                 );
               })}
+            </div>
+            
+            <div className="flex justify-center pt-4">
+              <Button 
+                onClick={handlePrintLabels}
+                className="bg-biobox-green hover:bg-biobox-green-dark"
+                disabled={Object.keys(generatedCodes).length === 0}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir Todas as Etiquetas
+              </Button>
             </div>
           </CardContent>
         </Card>
