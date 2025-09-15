@@ -100,49 +100,21 @@ export default function Settings() {
 
   const handleSaveUserSettings = () => {
     // Simulate save
-    console.log('Salvando configurações do usuário:', userSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleSaveSystemSettings = () => {
     // Simulate save
-    console.log('Salvando configurações do sistema:', systemSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
 
   const handleBackup = () => {
-    // Simulate backup creation
-    const backupData = {
-      timestamp: new Date().toISOString(),
-      version: '1.0.0',
-      data: {
-        orders: 'encrypted_orders_data',
-        customers: 'encrypted_customers_data',
-        products: 'encrypted_products_data',
-        users: 'encrypted_users_data'
-      }
-    };
-
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { 
-      type: 'application/json' 
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bioboxsys-backup-${format(new Date(), "yyyy-MM-dd-HHmm")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
     setSystemSettings(prev => ({
       ...prev,
       lastBackup: new Date()
     }));
-
-    console.log('Backup criado com sucesso');
   };
 
   return (

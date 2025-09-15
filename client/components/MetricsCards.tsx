@@ -94,32 +94,13 @@ export default function MetricsCards() {
     order.status === 'ready'
   ).length;
   
+  // Calculate total revenue from all active orders (not cancelled)
   const monthlyRevenue = mockOrders
-    .filter(order => {
-      const orderMonth = order.createdAt.getMonth();
-      const currentMonth = new Date().getMonth();
-      return orderMonth === currentMonth && 
-             ['delivered', 'ready'].includes(order.status);
-    })
+    .filter(order => order.status !== 'cancelled')
     .reduce((sum, order) => sum + order.totalAmount, 0);
   
-  const monthlyTarget = 50000;
+  const monthlyTarget = 180000;
   const revenuePercentage = Math.round((monthlyRevenue / monthlyTarget) * 100);
-  
-  // Calcular receita total confirmada (pedidos entregues + prontos)
-  const confirmedRevenue = mockOrders
-    .filter(order => ['delivered', 'ready'].includes(order.status))
-    .reduce((sum, order) => sum + order.totalAmount, 0);
-  
-  // Calcular receita em produção (valor já liberado dos fragmentos)
-  const productionRevenue = mockOrders
-    .filter(order => order.isFragmented && order.fragments)
-    .reduce((sum, order) => {
-      const releasedValue = order.fragments!
-        .filter(f => f.status === 'completed')
-        .reduce((fSum, f) => fSum + f.value, 0);
-      return sum + releasedValue;
-    }, 0);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -151,12 +132,12 @@ export default function MetricsCards() {
         color="green"
       />
       <MetricCard
-        title="Receita Confirmada"
-        value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(confirmedRevenue)}
-        subtitle={`Meta: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
+        title="Receita Total"
+        value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyRevenue)}
+        subtitle={`Meta Mensal: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
         icon={DollarSign}
         trend="up"
-        trendValue={`${Math.round((confirmedRevenue / monthlyTarget) * 100)}% da meta`}
+        trendValue={`${revenuePercentage}% da meta mensal`}
         color="green"
       />
     </div>

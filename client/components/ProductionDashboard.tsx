@@ -49,8 +49,6 @@ export default function ProductionDashboard({
 }: ProductionDashboardProps) {
   // Generate real production data from orders
   const generateRealProductionTasks = (): ProductionTask[] => {
-    if (tasks && tasks.length > 0) return tasks;
-    
     return mockOrders
       .filter(order => ['confirmed', 'in_production', 'quality_check'].includes(order.status))
       .map(order => ({
@@ -176,33 +174,6 @@ export default function ProductionDashboard({
   const realOperators = operators || generateRealOperators();
 
   const [selectedTask, setSelectedTask] = useState<ProductionTask | null>(null);
-  const [taskUpdates, setTaskUpdates] = useState<Record<string, Partial<ProductionTask>>>({});
-
-  const handleUpdateTask = (taskId: string, updates: Partial<ProductionTask>) => {
-    setTaskUpdates(prev => ({
-      ...prev,
-      [taskId]: { ...prev[taskId], ...updates }
-    }));
-  };
-
-  const handleStartTask = (taskId: string) => {
-    handleUpdateTask(taskId, {
-      status: 'in_progress',
-      startTime: new Date()
-    });
-  };
-
-  const handleCompleteTask = (taskId: string) => {
-    handleUpdateTask(taskId, {
-      status: 'completed',
-      progress: 100,
-      actualCompletionTime: new Date()
-    });
-  };
-
-  const getTaskWithUpdates = (task: ProductionTask) => {
-    return { ...task, ...taskUpdates[task.id] };
-  };
 
   // Statistics
   const activeTasks = realTasks.filter(t => t.status === 'in_progress').length;
@@ -217,40 +188,39 @@ export default function ProductionDashboard({
   const overallEfficiency = realLines.reduce((sum, line) => sum + line.efficiency, 0) / realLines.length;
 
   const TaskCard = ({ task }: { task: ProductionTask }) => {
-    const updatedTask = getTaskWithUpdates(task);
     const stage = productionStages.find(s => s.id === task.stage);
-    const timeRemaining = updatedTask.estimatedCompletionTime 
-      ? Math.max(0, Math.floor((updatedTask.estimatedCompletionTime.getTime() - Date.now()) / (1000 * 60)))
+    const timeRemaining = task.estimatedCompletionTime 
+      ? Math.max(0, Math.floor((task.estimatedCompletionTime.getTime() - Date.now()) / (1000 * 60)))
       : null;
 
     return (
       <Card 
         className={cn(
           "bg-card border-border hover:bg-muted/5 transition-colors cursor-pointer",
-          selectedTask?.id === updatedTask.id && "ring-2 ring-biobox-green"
+          selectedTask?.id === task.id && "ring-2 ring-biobox-green"
         )}
-        onClick={() => setSelectedTask(updatedTask)}
+        onClick={() => setSelectedTask(task)}
       >
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center space-x-2">
               <div
-                className={cn("w-2 h-2 rounded-full", priorityColors[updatedTask.priority])}
+                className={cn("w-2 h-2 rounded-full", priorityColors[task.priority])}
               />
-              <span className="font-medium text-sm">{updatedTask.orderNumber}</span>
+              <span className="font-medium text-sm">{task.orderNumber}</span>
             </div>
             <Badge 
               variant="outline" 
-              className={cn("text-xs", statusColors[updatedTask.status])}
+              className={cn("text-xs", statusColors[task.status])}
             >
-              {statusLabels[updatedTask.status]}
+              {statusLabels[task.status]}
             </Badge>
           </div>
           
           <div className="space-y-2">
             <div>
-              <p className="text-sm font-medium">{updatedTask.productName}</p>
-              <p className="text-xs text-muted-foreground">{updatedTask.customerName}</p>
+              <p className="text-sm font-medium">{task.productName}</p>
+              <p className="text-xs text-muted-foreground">{task.customerName}</p>
             </div>
             
             <div className="flex items-center text-xs text-muted-foreground">
@@ -258,22 +228,22 @@ export default function ProductionDashboard({
               <span>{stage?.name}</span>
             </div>
             
-            {updatedTask.assignedOperator && (
+            {task.assignedOperator && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <User className="h-3 w-3 mr-1" />
-                <span>{updatedTask.assignedOperator}</span>
+                <span>{task.assignedOperator}</span>
               </div>
             )}
             
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span>Progresso</span>
-                <span>{updatedTask.progress}%</span>
+                <span>{task.progress}%</span>
               </div>
-              <Progress value={updatedTask.progress} className="h-2" />
+              <Progress value={task.progress} className="h-2" />
             </div>
             
-            {timeRemaining !== null && updatedTask.status === 'in_progress' && (
+            {timeRemaining !== null && task.status === 'in_progress' && (
               <div className="flex items-center text-xs text-muted-foreground">
                 <Clock className="h-3 w-3 mr-1" />
                 <span>
@@ -285,42 +255,12 @@ export default function ProductionDashboard({
               </div>
             )}
             
-            {updatedTask.issues && updatedTask.issues.length > 0 && (
+            {task.issues && task.issues.length > 0 && (
               <div className="flex items-center text-xs text-red-500">
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                <span>{updatedTask.issues.length} problema(s)</span>
+                <span>{task.issues.length} problema(s)</span>
               </div>
             )}
-
-            {/* Action Buttons */}
-            <div className="flex space-x-2 pt-2">
-              {updatedTask.status === 'pending' && (
-                <Button
-                  size="sm"
-                  className="flex-1 bg-biobox-green hover:bg-biobox-green-dark"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleStartTask(updatedTask.id);
-                  }}
-                >
-                  <Play className="h-3 w-3 mr-1" />
-                  Iniciar
-                </Button>
-              )}
-              {updatedTask.status === 'in_progress' && (
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCompleteTask(updatedTask.id);
-                  }}
-                >
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Concluir
-                </Button>
-              )}
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -535,7 +475,7 @@ export default function ProductionDashboard({
                   <span>Detalhes da Tarefa</span>
                 </CardTitle>
                 <Button variant="ghost" size="icon" onClick={() => setSelectedTask(null)}>
-                  <X className="h-4 w-4" />
+                  <Square className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
