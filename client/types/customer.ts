@@ -44,7 +44,7 @@ export const mockCustomers: Customer[] = [
     createdAt: new Date('2024-01-15'),
     updatedAt: new Date('2024-12-10'),
     totalOrders: 3,
-    totalSpent: 12500.00,
+    totalSpent: 8550.00,
     lastOrderDate: new Date('2024-11-15')
   },
   {
@@ -66,7 +66,7 @@ export const mockCustomers: Customer[] = [
     createdAt: new Date('2024-02-20'),
     updatedAt: new Date('2024-12-08'),
     totalOrders: 8,
-    totalSpent: 45200.00,
+    totalSpent: 58800.00,
     lastOrderDate: new Date('2024-12-01')
   },
   {
@@ -88,7 +88,7 @@ export const mockCustomers: Customer[] = [
     createdAt: new Date('2024-03-10'),
     updatedAt: new Date('2024-11-30'),
     totalOrders: 1,
-    totalSpent: 3800.00,
+    totalSpent: 1800.00,
     lastOrderDate: new Date('2024-10-22')
   },
   {
@@ -110,7 +110,7 @@ export const mockCustomers: Customer[] = [
     createdAt: new Date('2024-01-05'),
     updatedAt: new Date('2024-06-15'),
     totalOrders: 2,
-    totalSpent: 7600.00,
+    totalSpent: 5400.00,
     lastOrderDate: new Date('2024-05-10')
   },
   {
@@ -132,7 +132,7 @@ export const mockCustomers: Customer[] = [
     createdAt: new Date('2024-04-12'),
     updatedAt: new Date('2024-12-12'),
     totalOrders: 12,
-    totalSpent: 78900.00,
+    totalSpent: 126000.00,
     lastOrderDate: new Date('2024-12-10')
   }
 ];

@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
-import NewOrderForm from "@/components/NewOrderForm";
+import OrderForm from "@/components/OrderForm";
+import ProductionCalendar from "@/components/ProductionCalendar";
+import FragmentProgress from "@/components/FragmentProgress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,128 +24,99 @@ import {
   AlertTriangle,
   CheckCircle,
   User,
-  Calendar,
-  DollarSign
+  TrendingUp,
+  Square
 } from "lucide-react";
+import { Order, mockOrders, statusLabels, statusColors, priorityColors } from "@/types/order";
 import { useAuth } from "@/hooks/useAuth";
-import { useSupabase, Order } from "@/hooks/useSupabase";
+import { cn } from "@/lib/utils";
+import { format, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
-const statusLabels = {
-  pending: 'Pendente',
-  confirmed: 'Confirmado',
-  in_production: 'Em Produção',
-  quality_check: 'Controle de Qualidade',
-  ready: 'Pronto',
-  delivered: 'Entregue',
-  cancelled: 'Cancelado'
-};
-
-const statusColors = {
-  pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  in_production: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  quality_check: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  ready: 'bg-green-500/10 text-green-500 border-green-500/20',
-  delivered: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-  cancelled: 'bg-red-500/10 text-red-500 border-red-500/20'
-};
-
-const priorityLabels = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente'
-};
-
-const priorityColors = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800'
-};
-
-export default function OrdersSupabase() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function Orders() {
+  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [showForm, setShowForm] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | undefined>();
+  const [selectedFragmentOrder, setSelectedFragmentOrder] = useState<Order | undefined>();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | Order['status']>("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | Order['priority']>("all");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showOrderDetails, setShowOrderDetails] = useState(false);
-  const [showNewOrderForm, setShowNewOrderForm] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
-  
   const { hasPermission } = useAuth();
-  const { getOrders, createOrder, isConnected } = useSupabase();
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
-  const loadOrders = async () => {
-    try {
-      setLoading(true);
-      const ordersData = await getOrders();
-      setOrders(ordersData);
-    } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
-    } finally {
-      setLoading(false);
+  const handleSaveOrder = (orderData: Partial<Order>) => {
+    if (selectedOrder) {
+      // Edit existing order
+      setOrders(prev => prev.map(order =>
+        order.id === selectedOrder.id
+          ? { ...order, ...orderData, updatedAt: new Date() }
+          : order
+      ));
+    } else {
+      // Add new order
+      const newOrder: Order = {
+        ...orderData,
+        id: Date.now().toString(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Order;
+      setOrders(prev => [newOrder, ...prev]);
     }
-  };
+    setShowForm(false);
+    setSelectedOrder(undefined);
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
-      const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (order.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-      const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter;
-      const matchesTab = activeTab === "all" || order.status === activeTab;
-      return matchesSearch && matchesStatus && matchesPriority && matchesTab;
-    });
-  }, [orders, searchTerm, statusFilter, priorityFilter, activeTab]);
-
-  // Statistics
-  const stats = useMemo(() => {
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter(o => o.status === 'pending').length;
-    const inProductionOrders = orders.filter(o => o.status === 'in_production').length;
-    const readyOrders = orders.filter(o => o.status === 'ready').length;
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
-    const urgentOrders = orders.filter(o => o.priority === 'urgent').length;
-    const overdueOrders = orders.filter(o => 
-      o.delivery_date && new Date() > new Date(o.delivery_date) && !['delivered', 'cancelled'].includes(o.status)
-    ).length;
-
-    return {
-      totalOrders,
-      pendingOrders,
-      inProductionOrders,
-      readyOrders,
-      totalRevenue,
-      urgentOrders,
-      overdueOrders
-    };
-  }, [orders]);
-
-  const handleOrderCreated = async (newOrderData: any) => {
-    try {
-      const createdOrder = await createOrder(newOrderData);
-      if (createdOrder) {
-        setOrders(prevOrders => [createdOrder, ...prevOrders]);
-      }
-    } catch (error) {
-      console.error('Erro ao criar pedido:', error);
-    }
+    // Force calendar to refresh by updating the key or triggering re-render
+    // The calendar will automatically show the new markers since it uses the orders prop
   };
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
-    setShowOrderDetails(true);
+    setShowForm(true);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const handleViewFragments = (order: Order) => {
+    setSelectedFragmentOrder(order);
+  };
+
+  const handleUpdateFragment = (fragmentId: string, updates: any) => {
+    if (!selectedFragmentOrder) return;
+
+    setOrders(prev => prev.map(order => {
+      if (order.id === selectedFragmentOrder.id && order.fragments) {
+        const updatedFragments = order.fragments.map(fragment =>
+          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
+        );
+        
+        // Update order progress based on fragments
+        const totalProgress = updatedFragments.reduce((sum, f) => sum + f.progress, 0) / updatedFragments.length;
+        const allCompleted = updatedFragments.every(f => f.status === 'completed');
+        
+        return {
+          ...order,
+          fragments: updatedFragments,
+          productionProgress: totalProgress,
+          status: allCompleted ? 'ready' as const : order.status,
+          updatedAt: new Date()
+        };
+      }
+      return order;
+    }));
+
+    // Update selected order for real-time UI updates
+    setSelectedFragmentOrder(prev => {
+      if (!prev || !prev.fragments) return prev;
+      return {
+        ...prev,
+        fragments: prev.fragments.map(fragment =>
+          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
+        )
+      };
+    });
   };
 
   const formatCurrency = (value: number) => {
@@ -153,27 +126,17 @@ export default function OrdersSupabase() {
     }).format(value);
   };
 
-  const getDaysUntilDelivery = (deliveryDate?: string) => {
-    if (!deliveryDate) return null;
-    const today = new Date();
-    const delivery = new Date(deliveryDate);
-    const diffTime = delivery.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+  const formatDate = (date: Date) => {
+    return format(date, "dd/MM/yyyy", { locale: ptBR });
   };
 
-  if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-biobox-green mx-auto mb-4"></div>
-            <p>Carregando pedidos...</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Statistics
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(o => o.status === 'pending').length;
+  const inProductionOrders = orders.filter(o => o.status === 'in_production').length;
+  const totalRevenue = orders
+    .filter(o => o.status !== 'cancelled')
+    .reduce((sum, order) => sum + order.totalAmount, 0);
 
   return (
     <DashboardLayout>
@@ -181,30 +144,26 @@ export default function OrdersSupabase() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Gerenciamento de Pedidos</h1>
-            <p className="text-muted-foreground">Agende e acompanhe seus pedidos de produção</p>
-            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Package className="h-4 w-4" />
-                {stats.totalOrders} total
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                {stats.inProductionOrders} em produção
-              </span>
-              <span className="flex items-center gap-1">
-                <AlertTriangle className="h-4 w-4" />
-                {stats.pendingOrders} pendentes
-              </span>
-              {stats.urgentOrders > 0 && <span className="text-red-500">🚨 {stats.urgentOrders} urgentes</span>}
-              {stats.overdueOrders > 0 && <span className="text-red-500">⚠️ {stats.overdueOrders} atrasados</span>}
-              {!isConnected && <span className="text-orange-500">📱 Modo offline</span>}
+            <h1 className="text-2xl font-bold text-foreground">
+              Gerenciamento de Pedidos
+            </h1>
+            <p className="text-muted-foreground">
+              Agende e acompanhe seus pedidos de produção
+            </p>
+            <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+              <span>📅 {orders.filter(o => {
+                const today = new Date();
+                return isSameDay(o.scheduledDate, today) || (o.deliveryDate && isSameDay(o.deliveryDate, today));
+              }).length} hoje</span>
+              <span>🔄 {inProductionOrders} em produção</span>
+              <span>⏳ {pendingOrders} pendentes</span>
+              <span>📦 {orders.filter(o => o.isFragmented).length} fragmentados</span>
             </div>
           </div>
           {hasPermission('orders', 'create') && (
-            <Button 
+            <Button
               className="bg-biobox-green hover:bg-biobox-green-dark"
-              onClick={() => setShowNewOrderForm(true)}
+              onClick={() => setShowForm(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
               Novo Pedido
@@ -356,179 +315,156 @@ export default function OrdersSupabase() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.map((order) => {
-                      const daysUntilDelivery = getDaysUntilDelivery(order.delivery_date);
-                      const isOverdue = daysUntilDelivery !== null && daysUntilDelivery < 0 && !['delivered', 'cancelled'].includes(order.status);
-                      
-                      return (
-                        <TableRow key={order.id} className={isOverdue ? "bg-red-50 dark:bg-red-950/20" : ""}>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className={`w-2 h-2 rounded-full ${priorityColors[order.priority]}`}
-                              />
-                              <div>
-                                <div className="font-medium">{order.order_number}</div>
-                                {order.assigned_operator && (
-                                  <div className="flex items-center text-xs text-muted-foreground">
-                                    <User className="h-3 w-3 mr-1" />
-                                    {order.assigned_operator}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={cn(
+                                "w-2 h-2 rounded-full",
+                                priorityColors[order.priority]
+                              )}
+                            />
                             <div>
-                              <div className="font-medium">{order.customer_name}</div>
-                              <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium text-biobox-green">{order.seller_name}</div>
-                              <div className="text-xs text-muted-foreground">Vendedor</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">{formatDate(order.scheduled_date)}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {order.delivery_date ? formatDate(order.delivery_date) : '-'}
-                              {daysUntilDelivery !== null && (
-                                <div className={`text-xs ${isOverdue ? 'text-red-500' : daysUntilDelivery <= 3 ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                                  {isOverdue ? `${Math.abs(daysUntilDelivery)} dias atrasado` : 
-                                   daysUntilDelivery === 0 ? 'Hoje' :
-                                   daysUntilDelivery === 1 ? 'Amanhã' :
-                                   `${daysUntilDelivery} dias`}
+                              <div className="font-medium">{order.orderNumber}</div>
+                              {order.assignedOperator && (
+                                <div className="flex items-center text-xs text-muted-foreground">
+                                  <User className="h-3 w-3 mr-1" />
+                                  {order.assignedOperator}
                                 </div>
                               )}
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-biobox-green h-2 rounded-full" 
-                                  style={{ width: `${order.production_progress}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-xs text-muted-foreground">{order.production_progress}%</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{order.customerName}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {order.products.length} produto(s)
+                            {order.isFragmented && (
+                              <Badge variant="outline" className="ml-2 text-xs bg-purple-500/10 text-purple-500 border-purple-500/20">
+                                Fragmentado
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {order.products[0]?.productName}
+                            {order.products.length > 1 && ` +${order.products.length - 1}`}
+                            {order.totalQuantity && (
+                              <span className="block">Total: {order.totalQuantity} unidades</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">{formatDate(order.scheduledDate)}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {order.deliveryDate ? formatDate(order.deliveryDate) : '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <Progress value={order.productionProgress} className="h-2" />
+                            <div className="text-xs text-muted-foreground">
+                              {order.productionProgress}%
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={statusColors[order.status]}>
-                              {statusLabels[order.status]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={priorityColors[order.priority]}>
-                              {priorityLabels[order.priority]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {formatCurrency(order.total_amount)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs", statusColors[order.status])}
+                          >
+                            {statusLabels[order.status]}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{formatCurrency(order.totalAmount)}</div>
+                          {order.isFragmented && order.fragments && (
+                            <div className="text-xs text-muted-foreground">
+                              Liberado: {formatCurrency(
+                                order.fragments
+                                  .filter(f => f.status === 'completed')
+                                  .reduce((sum, f) => sum + f.value, 0)
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            {hasPermission('orders', 'edit') && (
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleViewOrder(order)}
+                                onClick={() => handleEditOrder(order)}
                               >
-                                <Eye className="h-4 w-4" />
+                                <Edit className="h-4 w-4" />
                               </Button>
-                              {hasPermission('orders', 'edit') && (
-                                <Button variant="ghost" size="icon">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              )}
-                              <Button variant="ghost" size="icon">
-                                <Printer className="h-4 w-4" />
+                            )}
+                            {order.isFragmented && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleViewFragments(order)}
+                                title="Ver fragmentos"
+                              >
+                                <Package className="h-4 w-4" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        {/* Order Details Dialog */}
-        <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader>
-              <DialogTitle>Detalhes do Pedido {selectedOrder?.order_number}</DialogTitle>
-            </DialogHeader>
-            {selectedOrder && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold mb-2">Informações do Cliente</h3>
-                    <p><strong>Nome:</strong> {selectedOrder.customer_name}</p>
-                    <p><strong>Telefone:</strong> {selectedOrder.customer_phone}</p>
-                    <p><strong>Email:</strong> {selectedOrder.customer_email}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Informações do Pedido</h3>
-                    <p><strong>Vendedor:</strong> {selectedOrder.seller_name}</p>
-                    <p><strong>Status:</strong> {statusLabels[selectedOrder.status]}</p>
-                    <p><strong>Prioridade:</strong> {priorityLabels[selectedOrder.priority]}</p>
-                    <p><strong>Progresso:</strong> {selectedOrder.production_progress}%</p>
-                  </div>
+        {/* Order Form Modal */}
+        {showForm && hasPermission('orders', 'create') && (
+          <OrderForm
+            order={selectedOrder}
+            onSave={handleSaveOrder}
+            onCancel={() => {
+              setShowForm(false);
+              setSelectedOrder(undefined);
+            }}
+          />
+        )}
+
+        {/* Fragment Progress Modal */}
+        {selectedFragmentOrder && selectedFragmentOrder.fragments && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-6xl max-h-[90vh] overflow-y-auto bg-card border-border">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center space-x-2">
+                    <Package className="h-5 w-5" />
+                    <span>Fragmentos - {selectedFragmentOrder.orderNumber}</span>
+                  </CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setSelectedFragmentOrder(undefined)}
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
                 </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-2">Datas</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <p><strong>Criado em:</strong> {formatDate(selectedOrder.created_at)}</p>
-                    <p><strong>Produção:</strong> {formatDate(selectedOrder.scheduled_date)}</p>
-                    <p><strong>Entrega:</strong> {selectedOrder.delivery_date ? formatDate(selectedOrder.delivery_date) : 'Não definida'}</p>
-                  </div>
-                </div>
-
-                {selectedOrder.notes && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Observações</h3>
-                    <p className="text-muted-foreground">{selectedOrder.notes}</p>
-                  </div>
-                )}
-
-                <div className="flex justify-between">
-                  <div className="text-lg font-bold">
-                    Total: {formatCurrency(selectedOrder.total_amount)}
-                  </div>
-                  <div className="space-x-2">
-                    <Button variant="outline">
-                      <Printer className="h-4 w-4 mr-2" />
-                      Imprimir
-                    </Button>
-                    {hasPermission('orders', 'edit') && (
-                      <Button>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar Pedido
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* New Order Form */}
-        <NewOrderForm
-          open={showNewOrderForm}
-          onOpenChange={setShowNewOrderForm}
-          onOrderCreated={handleOrderCreated}
-        />
+              </CardHeader>
+              <CardContent>
+                <FragmentProgress
+                  fragments={selectedFragmentOrder.fragments}
+                  onUpdateFragment={handleUpdateFragment}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
 }
-

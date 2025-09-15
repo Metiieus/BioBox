@@ -100,18 +100,6 @@ export default function ProductionSettings({ onClose, onSave }: ProductionSettin
   const [stages, setStages] = useState<ProductionStage[]>(productionStages);
 
   const handleSaveSettings = () => {
-    // Simulate API call
-    console.log('Salvando configurações:', { settings, lines, operators, stages });
-    
-    // Show success feedback
-    const event = new CustomEvent('toast', {
-      detail: {
-        title: 'Configurações salvas',
-        description: 'As configurações de produção foram atualizadas com sucesso.'
-      }
-    });
-    window.dispatchEvent(event);
-    
     onSave?.({ settings, lines, operators, stages });
     onClose();
   };
@@ -297,7 +285,6 @@ export default function ProductionSettings({ onClose, onSave }: ProductionSettin
                           <Input
                             value={line.name}
                             onChange={(e) => updateLine(line.id, { name: e.target.value })}
-                            placeholder="Ex: Linha A - Premium"
                           />
                         </div>
                         <div>
@@ -320,26 +307,15 @@ export default function ProductionSettings({ onClose, onSave }: ProductionSettin
                           <Label>Meta Diária</Label>
                           <Input
                             type="number"
-                            min="1"
                             value={line.dailyTarget}
                             onChange={(e) => updateLine(line.id, { dailyTarget: parseInt(e.target.value) })}
-                            placeholder="3"
                           />
                         </div>
                         <div className="flex items-end space-x-2">
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => console.log('Editar linha:', line)}
-                            title="Editar linha"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => deleteLine(line.id)}
-                            title="Excluir linha"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -364,26 +340,23 @@ export default function ProductionSettings({ onClose, onSave }: ProductionSettin
                 {operators.map(operator => (
                   <Card key={operator.id} className="bg-muted/5">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium">{operator.name}</h4>
-                        <Badge 
-                          variant="outline"
-                          className={cn("text-xs", operatorStatusColors[operator.status])}
-                        >
-                          {operatorStatusLabels[operator.status]}
-                        </Badge>
-                      </div>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <div>
-                          <Label>Experiência</Label>
-                          <p className="text-sm">{operator.experience} anos</p>
+                          <Label>Nome</Label>
+                          <Input value={operator.name} readOnly />
                         </div>
                         <div>
-                          <Label>Eficiência</Label>
-                          <div className="flex items-center space-x-2">
-                            <Progress value={operator.efficiency} className="h-2 flex-1" />
-                            <span className="text-sm font-medium">{operator.efficiency}%</span>
-                          </div>
+                          <Label>Turno</Label>
+                          <Select value={operator.shift}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="morning">Manhã</SelectItem>
+                              <SelectItem value="afternoon">Tarde</SelectItem>
+                              <SelectItem value="night">Noite</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <Label>Habilidades</Label>
@@ -394,13 +367,6 @@ export default function ProductionSettings({ onClose, onSave }: ProductionSettin
                               </Badge>
                             ))}
                           </div>
-                        </div>
-                        <div>
-                          <Label>Turno</Label>
-                          <p className="text-sm capitalize">
-                            {operator.shift === 'morning' ? 'Manhã' : 
-                             operator.shift === 'afternoon' ? 'Tarde' : 'Noite'}
-                          </p>
                         </div>
                       </div>
                     </CardContent>

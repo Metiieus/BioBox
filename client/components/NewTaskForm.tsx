@@ -47,6 +47,7 @@ export default function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
 
     const newTask: Partial<ProductionTask> = {
       ...formData,
+      id: Date.now().toString(),
       orderNumber: selectedOrder.orderNumber,
       productName: selectedOrder.products[0]?.productName || 'Produto',
       customerId: selectedOrder.customerId,
@@ -54,6 +55,8 @@ export default function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
       stageOrder: selectedStage.order,
       status: 'pending',
       progress: 0,
+      startTime: undefined,
+      actualCompletionTime: undefined
     };
 
     onSave(newTask);
