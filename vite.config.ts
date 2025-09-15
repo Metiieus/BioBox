@@ -19,7 +19,13 @@ export default defineConfig(({ mode }) => ({
       ],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
+<<<<<<< HEAD
     hmr: { clientPort: 8080 },
+=======
+    hmr: {
+      clientPort: 8080
+    }
+>>>>>>> f802f5c3f6f6dd0e1acc775b23090fd4d28bbdcf
   },
   build: {
     outDir: "dist/spa",

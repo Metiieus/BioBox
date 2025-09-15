@@ -94,13 +94,18 @@ export default function MetricsCards() {
     order.status === 'ready'
   ).length;
   
+  // Calculate total revenue from all active orders (not cancelled)
   const monthlyRevenue = mockOrders
+<<<<<<< HEAD
     .filter(order => {
       const orderMonth = order.createdAt.getMonth();
       const currentMonth = new Date().getMonth();
       return orderMonth === currentMonth && 
              ['delivered', 'ready'].includes(order.status);
     })
+=======
+    .filter(order => order.status !== 'cancelled')
+>>>>>>> f802f5c3f6f6dd0e1acc775b23090fd4d28bbdcf
     .reduce((sum, order) => sum + order.totalAmount, 0);
   
   const monthlyTarget = 50000;
@@ -151,12 +156,21 @@ export default function MetricsCards() {
         color="green"
       />
       <MetricCard
+<<<<<<< HEAD
         title="Receita Confirmada"
         value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(confirmedRevenue)}
         subtitle={`Meta: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
         icon={DollarSign}
         trend="up"
         trendValue={`${Math.round((confirmedRevenue / monthlyTarget) * 100)}% da meta`}
+=======
+        title="Receita Total"
+        value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyRevenue)}
+        subtitle={`Meta Mensal: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
+        icon={DollarSign}
+        trend="up"
+        trendValue={`${revenuePercentage}% da meta mensal`}
+>>>>>>> f802f5c3f6f6dd0e1acc775b23090fd4d28bbdcf
         color="green"
       />
     </div>
