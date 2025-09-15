@@ -3,6 +3,8 @@ export interface Order {
   orderNumber: string;
   customerId: string;
   customerName: string;
+  sellerId: string;
+  sellerName: string;
   products: OrderProduct[];
   status: 'pending' | 'confirmed' | 'in_production' | 'quality_check' | 'ready' | 'delivered' | 'cancelled';
   priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -153,6 +155,8 @@ export const mockOrders: Order[] = [
     orderNumber: 'ORD-2024-001',
     customerId: '1',
     customerName: 'João Silva',
+    sellerId: '2',
+    sellerName: 'Carlos Vendedor',
     status: 'in_production',
     priority: 'medium',
     totalAmount: 4200.00,
@@ -189,6 +193,8 @@ export const mockOrders: Order[] = [
     orderNumber: 'ORD-2024-002',
     customerId: '2',
     customerName: 'Móveis Premium Ltda',
+    sellerId: '3',
+    sellerName: 'Ana Vendedora',
     status: 'confirmed',
     priority: 'high',
     totalAmount: 12600.00,
@@ -230,6 +236,8 @@ export const mockOrders: Order[] = [
     orderNumber: 'ORD-2024-003',
     customerId: '3',
     customerName: 'Maria Santos',
+    sellerId: '2',
+    sellerName: 'Carlos Vendedor',
     status: 'ready',
     priority: 'low',
     totalAmount: 2100.00,
@@ -266,6 +274,8 @@ export const mockOrders: Order[] = [
     orderNumber: 'ORD-2024-004',
     customerId: '5',
     customerName: 'Casa & Decoração S.A.',
+    sellerId: '3',
+    sellerName: 'Ana Vendedora',
     status: 'pending',
     priority: 'urgent',
     totalAmount: 21000.00,

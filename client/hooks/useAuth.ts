@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { AuthUser, AuthState } from '@/types/auth';
-import { mockUsers } from '@/types/user';
+import { useSupabase, User } from './useSupabase';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -25,7 +25,13 @@ export const useAuthProvider = (): AuthContextType => {
     isLoading: true
   });
 
+  const { getUsers } = useSupabase();
+
   useEffect(() => {
+    checkAuthState();
+  }, []);
+
+  const checkAuthState = async () => {
     // Check for stored auth
     const storedUser = localStorage.getItem('bioboxsys_user');
     if (storedUser) {
@@ -43,30 +49,36 @@ export const useAuthProvider = (): AuthContextType => {
     } else {
       setAuthState(prev => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  };
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    const user = mockUsers.find(u => u.email === email && u.status === 'active');
-    
-    if (user && password === 'password') { // Simple password check for demo
-      const authUser: AuthUser = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        permissions: user.permissions.map(p => p.id)
-      };
+    try {
+      // Get users from Supabase or fallback
+      const users = await getUsers();
+      const user = users.find(u => u.email === email);
+      
+      if (user && password === 'password') { // Simple password check for demo
+        const authUser: AuthUser = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          permissions: user.permissions
+        };
 
-      localStorage.setItem('bioboxsys_user', JSON.stringify(authUser));
-      setAuthState({
-        user: authUser,
-        isAuthenticated: true,
-        isLoading: false
-      });
-      return true;
+        localStorage.setItem('bioboxsys_user', JSON.stringify(authUser));
+        setAuthState({
+          user: authUser,
+          isAuthenticated: true,
+          isLoading: false
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -83,13 +95,8 @@ export const useAuthProvider = (): AuthContextType => {
     if (authState.user.role === 'admin') return true;
     
     // Check specific permissions
-    return authState.user.permissions.some(permissionId => {
-      const permission = mockUsers
-        .find(u => u.id === authState.user!.id)
-        ?.permissions.find(p => p.id === permissionId);
-      
-      return permission?.module === module && permission.actions.includes(action as any);
-    });
+    const permission = `${module}:${action}`;
+    return authState.user.permissions.includes(permission) || authState.user.permissions.includes('all');
   };
 
   return {
@@ -101,3 +108,4 @@ export const useAuthProvider = (): AuthContextType => {
 };
 
 export { AuthContext };
+

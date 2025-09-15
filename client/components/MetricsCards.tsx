@@ -94,12 +94,9 @@ export default function MetricsCards() {
     order.status === 'ready'
   ).length;
   
+  // Calculate total revenue from all active orders (not cancelled)
   const monthlyRevenue = mockOrders
-    .filter(order => {
-      const orderMonth = order.createdAt.getMonth();
-      const currentMonth = new Date().getMonth();
-      return orderMonth === currentMonth && order.status !== 'cancelled';
-    })
+    .filter(order => order.status !== 'cancelled')
     .reduce((sum, order) => sum + order.totalAmount, 0);
   
   const monthlyTarget = 180000;
@@ -135,12 +132,12 @@ export default function MetricsCards() {
         color="green"
       />
       <MetricCard
-        title="Faturamento Mês"
+        title="Receita Total"
         value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyRevenue)}
-        subtitle={`Meta: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
+        subtitle={`Meta Mensal: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthlyTarget)}`}
         icon={DollarSign}
         trend="up"
-        trendValue={`${revenuePercentage}% da meta`}
+        trendValue={`${revenuePercentage}% da meta mensal`}
         color="green"
       />
     </div>
