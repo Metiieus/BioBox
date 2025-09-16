@@ -92,50 +92,6 @@ export default function OrdersSupabase() {
     }
   };
 
-<<<<<<< HEAD
-  const handleViewOrder = (order: Order) => {
-    setSelectedOrder(order);
-    setShowForm(true);
-  };
-
-  const handleViewFragments = (order: Order) => {
-    setSelectedFragmentOrder(order);
-  };
-
-  const handleUpdateFragment = (fragmentId: string, updates: any) => {
-    if (!selectedFragmentOrder) return;
-
-    setOrders(prev => prev.map(order => {
-      if (order.id === selectedFragmentOrder.id && order.fragments) {
-        const updatedFragments = order.fragments.map(fragment =>
-          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
-        );
-        
-        // Update order progress based on fragments
-        const totalProgress = updatedFragments.reduce((sum, f) => sum + f.progress, 0) / updatedFragments.length;
-        const allCompleted = updatedFragments.every(f => f.status === 'completed');
-        
-        return {
-          ...order,
-          fragments: updatedFragments,
-          productionProgress: totalProgress,
-          status: allCompleted ? 'ready' as const : order.status,
-          updatedAt: new Date()
-        };
-      }
-      return order;
-    }));
-
-    // Update selected order for real-time UI updates
-    setSelectedFragmentOrder(prev => {
-      if (!prev || !prev.fragments) return prev;
-      return {
-        ...prev,
-        fragments: prev.fragments.map(fragment =>
-          fragment.id === fragmentId ? { ...fragment, ...updates } : fragment
-        )
-      };
-=======
   const filteredOrders = useMemo(() => {
     return orders.filter(order => {
       const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -144,7 +100,6 @@ export default function OrdersSupabase() {
       const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter;
       const matchesTab = activeTab === "all" || order.status === activeTab;
       return matchesSearch && matchesStatus && matchesPriority && matchesTab;
->>>>>>> f802f5c3f6f6dd0e1acc775b23090fd4d28bbdcf
     });
   }, [orders, searchTerm, statusFilter, priorityFilter, activeTab]);
 

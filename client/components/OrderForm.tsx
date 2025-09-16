@@ -54,27 +54,7 @@ export default function OrderForm({ order, onSave, onCancel }: OrderFormProps) {
 
   const calculateProductPrice = () => {
     if (!selectedProduct || !selectedModel) return 0;
-    
-    let basePrice = selectedProduct.basePrice;
-    
-    // Aplicar modificador do modelo
-    basePrice *= selectedModel.priceModifier;
-    
-    // Aplicar modificadores de tamanho (se disponível)
-    const sizeModifier = selectedModel.sizes?.find(s => s === newProduct.size) ? 1.0 : 1.0;
-    
-    // Aplicar modificadores baseados no tamanho
-    if (newProduct.size === 'Solteiro') basePrice *= 0.8;
-    else if (newProduct.size === 'Queen') basePrice *= 1.2;
-    else if (newProduct.size === 'King') basePrice *= 1.5;
-    else if (newProduct.size === 'Super King') basePrice *= 1.8;
-    
-    // Aplicar modificadores de tecido
-    if (newProduct.fabric === 'Veludo Premium' || newProduct.fabric === 'Couro') basePrice *= 1.3;
-    else if (newProduct.fabric === 'Tecido Premium') basePrice *= 1.1;
-    else if (newProduct.fabric === 'Courino Premium') basePrice *= 1.05;
-    
-    return Math.round(basePrice * newProduct.quantity);
+    return selectedProduct.basePrice * selectedModel.priceModifier * newProduct.quantity;
   };
 
   const calculateTotalAmount = () => {

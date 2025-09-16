@@ -1,41 +1,30 @@
-// vite.config.ts
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
-import path from "node:path"; // use node:path
-
+import path from "path";
 import { createServer } from "./server";
 
+// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
     port: 8080,
     strictPort: true,
     fs: {
-      // ✅ inclua o raiz e use caminhos absolutos
-      allow: [
-        path.resolve(__dirname),                // raiz (onde está o index.html)
-        path.resolve(__dirname, "client"),
-        path.resolve(__dirname, "shared"),
-      ],
+      allow: ["./client", "./shared"],
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
-<<<<<<< HEAD
-    hmr: { clientPort: 8080 },
-=======
     hmr: {
       clientPort: 8080
     }
->>>>>>> f802f5c3f6f6dd0e1acc775b23090fd4d28bbdcf
   },
   build: {
     outDir: "dist/spa",
-    emptyOutDir: true,
   },
   plugins: [react(), expressPlugin()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "client"),
-      "@shared": path.resolve(__dirname, "shared"),
+      "@": path.resolve(__dirname, "./client"),
+      "@shared": path.resolve(__dirname, "./shared"),
     },
   },
 }));
@@ -43,9 +32,11 @@ export default defineConfig(({ mode }) => ({
 function expressPlugin(): Plugin {
   return {
     name: "express-plugin",
-    apply: "serve",
+    apply: "serve", // Only apply during development (serve mode)
     configureServer(server) {
       const app = createServer();
+
+      // Add Express app as middleware to Vite dev server
       server.middlewares.use(app);
     },
   };
