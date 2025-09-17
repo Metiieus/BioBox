@@ -74,7 +74,7 @@ export default function OrdersSupabase() {
   const [activeTab, setActiveTab] = useState("all");
   
   const { hasPermission } = useAuth();
-  const { getOrders, createOrder, isConnected } = useSupabase();
+  const { getOrders, createOrder, updateOrder, isConnected } = useSupabase();
 
   useEffect(() => {
     loadOrders();
@@ -531,4 +531,3 @@ export default function OrdersSupabase() {
     </DashboardLayout>
   );
 }
-
