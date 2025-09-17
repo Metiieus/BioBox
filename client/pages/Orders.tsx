@@ -142,6 +142,42 @@ export default function OrdersSupabase() {
     setShowOrderDetails(true);
   };
 
+  const applyUpdate = (updated: Order) => {
+    setOrders(prev => prev.map(o => (o.id === updated.id ? updated : o)));
+    if (selectedOrder && selectedOrder.id === updated.id) setSelectedOrder(updated);
+  };
+
+  const handleTransition = async (order: Order, nextStatus: Order['status'], progress?: number) => {
+    const updates: Partial<Order> = { status: nextStatus };
+    if (typeof progress === 'number') updates.production_progress = progress;
+    const updated = await updateOrder(order.id, updates);
+    if (updated) applyUpdate(updated);
+  };
+
+  const availableActions = (order: Order): { label: string; next: Order['status']; perm: string; progress?: number }[] => {
+    const actions: { label: string; next: Order['status']; perm: string; progress?: number }[] = [];
+    switch (order.status) {
+      case 'pending':
+        actions.push({ label: 'Aceitar', next: 'confirmed', perm: 'orders:approve', progress: 0 });
+        actions.push({ label: 'Cancelar', next: 'cancelled', perm: 'orders:cancel' });
+        break;
+      case 'confirmed':
+        actions.push({ label: 'Enviar p/ Produção', next: 'in_production', perm: 'orders:advance', progress: Math.max(order.production_progress, 10) });
+        actions.push({ label: 'Cancelar', next: 'cancelled', perm: 'orders:cancel' });
+        break;
+      case 'in_production':
+        actions.push({ label: 'Controle de Qualidade', next: 'quality_check', perm: 'orders:advance', progress: Math.max(order.production_progress, 80) });
+        break;
+      case 'quality_check':
+        actions.push({ label: 'Marcar Pronto', next: 'ready', perm: 'orders:advance', progress: 100 });
+        break;
+      case 'ready':
+        actions.push({ label: 'Entregar', next: 'delivered', perm: 'orders:deliver' });
+        break;
+    }
+    return actions;
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -439,6 +475,18 @@ export default function OrdersSupabase() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
+                              {availableActions(order)
+                                .filter(a => hasPermission('orders', a.perm.split(':')[1]))
+                                .map(action => (
+                                  <Button
+                                    key={action.label}
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => handleTransition(order, action.next, action.progress)}
+                                  >
+                                    {action.label}
+                                  </Button>
+                                ))}
                               {hasPermission('orders', 'edit') && (
                                 <Button variant="ghost" size="icon">
                                   <Edit className="h-4 w-4" />
@@ -508,6 +556,11 @@ export default function OrdersSupabase() {
                       <Printer className="h-4 w-4 mr-2" />
                       Imprimir
                     </Button>
+                    {availableActions(selectedOrder).filter(a => hasPermission('orders', a.perm.split(':')[1])).map(a => (
+                      <Button key={a.label} onClick={() => handleTransition(selectedOrder, a.next, a.progress)}>
+                        {a.label}
+                      </Button>
+                    ))}
                     {hasPermission('orders', 'edit') && (
                       <Button>
                         <Edit className="h-4 w-4 mr-2" />
