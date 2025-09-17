@@ -1,5 +1,5 @@
-import DashboardLayout from "@/components/DashboardLayout";
 import { useState } from "react";
+import DashboardLayout from "@/components/DashboardLayout";
 import ProductionDashboard from "@/components/ProductionDashboard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -7,7 +7,6 @@ import ProductionReport from "@/components/ProductionReport";
 import ThermalPrintManager from "@/components/ThermalPrintManager";
 import NewProductionTask from "@/components/NewProductionTask";
 import { Play, Download, Printer } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Production() {
   const [showReport, setShowReport] = useState(false);
