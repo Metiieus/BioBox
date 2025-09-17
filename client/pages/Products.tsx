@@ -440,7 +440,15 @@ export default function Products() {
           <DialogContent>
             <ProductForm
               onSave={(p) => {
-                setProducts(prev => [p, ...prev]);
+                setProducts(prev => {
+                  const updated = [p, ...prev];
+                  try {
+                    const stored = localStorage.getItem('biobox_products');
+                    const arr = stored ? JSON.parse(stored) : [];
+                    localStorage.setItem('biobox_products', JSON.stringify([p, ...arr]));
+                  } catch {}
+                  return updated;
+                });
                 setShowProductForm(false);
               }}
               onCancel={() => setShowProductForm(false)}
