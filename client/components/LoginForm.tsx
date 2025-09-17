@@ -20,12 +20,13 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      if (!success) {
-        setError("Email ou senha incorretos");
-      }
+      await login(email, password);
     } catch (err) {
-      setError("Erro ao fazer login. Tente novamente.");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Erro ao fazer login. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }

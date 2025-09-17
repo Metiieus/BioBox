@@ -39,7 +39,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
     name: '',
     email: '',
     password: '',
-    role: 'seller' as 'admin' | 'seller',
+    role: 'seller' as 'admin' | 'seller' | 'operator',
     status: 'active' as 'active' | 'inactive',
     permissions: [] as string[]
   });
@@ -354,6 +354,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                   <SelectContent>
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="seller">Vendedor</SelectItem>
+                    <SelectItem value="operator">Operador</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
