@@ -409,12 +409,64 @@ export function useSupabase() {
         console.error('Erro ao criar pedido:', error)
       }
     }
-    
+
     // Fallback para localStorage
     const orders = await getOrders()
     const updatedOrders = [newOrder, ...orders]
     localStorage.setItem('biobox_orders', JSON.stringify(updatedOrders))
     return newOrder
+  }
+
+  const updateOrder = async (orderId: string, updates: Partial<Order>): Promise<Order | null> => {
+    const now = new Date().toISOString();
+    if (isConnected) {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .update({ ...updates, updated_at: now })
+          .eq('id', orderId)
+          .select()
+          .single();
+        if (!error && data) return data as Order;
+      } catch (error) {
+        console.error('Erro ao atualizar pedido:', error);
+      }
+    }
+
+    const orders = await getOrders();
+    const updated = orders.map(o => (o.id === orderId ? { ...o, ...updates, updated_at: now } : o));
+    localStorage.setItem('biobox_orders', JSON.stringify(updated));
+    return updated.find(o => o.id === orderId) || null;
+  }
+
+  const createProduct = async (productData: Partial<Product>): Promise<Product | null> => {
+    const newProduct: Product = {
+      id: `product-${Date.now()}`,
+      name: productData.name || 'Produto',
+      model: productData.model || '',
+      base_price: productData.base_price || 0,
+      sizes: productData.sizes || [],
+      colors: productData.colors || [],
+      fabrics: productData.fabrics || [],
+      description: productData.description,
+      active: productData.active ?? true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as Product;
+
+    if (isConnected) {
+      try {
+        const { data, error } = await supabase.from('products').insert([newProduct]).select().single();
+        if (!error && data) return data as Product;
+      } catch (error) {
+        console.error('Erro ao criar produto:', error);
+      }
+    }
+
+    const products = await getProducts();
+    const updated = [newProduct, ...products];
+    localStorage.setItem('biobox_products', JSON.stringify(updated));
+    return newProduct;
   }
 
   const createCustomer = async (customerData: Partial<Customer>): Promise<Customer | null> => {
@@ -449,8 +501,9 @@ export function useSupabase() {
     getProducts,
     getOrders,
     createOrder,
+    updateOrder,
+    createProduct,
     createCustomer,
     checkConnection
   }
 }
-
