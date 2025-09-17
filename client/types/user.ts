@@ -3,7 +3,7 @@ export interface User {
   name: string;
   email: string;
   password?: string;
-  role: 'admin' | 'seller';
+  role: 'admin' | 'seller' | 'operator';
   permissions: Permission[];
   status: 'active' | 'inactive';
   createdAt: Date;
@@ -81,6 +81,10 @@ export const rolePermissions = {
   seller: [
     defaultPermissions.find(p => p.id === 'orders-full')!,
     defaultPermissions.find(p => p.id === 'customers-full')!
+  ],
+  operator: [
+    defaultPermissions.find(p => p.id === 'production-view')!,
+    defaultPermissions.find(p => p.id === 'production-manage')!
   ]
 };
 
