@@ -88,11 +88,6 @@ export default function LoginForm() {
               {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
 
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Usuários de demonstração:</p>
-              <p>Admin: admin@bioboxsys.com / password</p>
-              <p>Vendedor: carlos@bioboxsys.com / password</p>
-            </div>
           </form>
         </CardContent>
       </Card>
