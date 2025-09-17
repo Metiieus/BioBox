@@ -8,6 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ProductForm from "@/components/ProductForm";
+import BarcodeGenerator from "@/components/BarcodeGenerator";
+import ThermalPrintManager from "@/components/ThermalPrintManager";
 import {
   Package,
   Plus,
@@ -43,6 +47,9 @@ export default function Products() {
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>(mockRawMaterials);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showBarcode, setShowBarcode] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
 
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -203,15 +210,15 @@ export default function Products() {
             </p>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowBarcode(true)}>
               <QrCode className="h-4 w-4 mr-2" />
               Gerar Etiquetas
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowLabels(true)}>
               <Barcode className="h-4 w-4 mr-2" />
               Imprimir Códigos
             </Button>
-            <Button className="bg-biobox-green hover:bg-biobox-green-dark">
+            <Button className="bg-biobox-green hover:bg-biobox-green-dark" onClick={() => setShowProductForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Novo Produto
             </Button>
@@ -303,47 +310,14 @@ export default function Products() {
           </TabsContent>
 
           <TabsContent value="barcode">
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <QrCode className="h-5 w-5" />
-                  <span>Geração de Códigos de Barras</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Card className="bg-muted/5 border-dashed">
-                    <CardContent className="p-6 text-center">
-                      <Barcode className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        Códigos de Produtos
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        Gere códigos de barras para identificação de produtos
-                      </p>
-                      <Button className="bg-biobox-green hover:bg-biobox-green-dark">
-                        Gerar Códigos
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-muted/5 border-dashed">
-                    <CardContent className="p-6 text-center">
-                      <QrCode className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        Etiquetas de Produção
-                      </h3>
-                      <p className="text-muted-foreground mb-4">
-                        Imprima etiquetas para controle de produção
-                      </p>
-                      <Button variant="outline">
-                        Imprimir Etiquetas
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-x-2">
+              <Button className="bg-biobox-green hover:bg-biobox-green-dark" onClick={() => setShowBarcode(true)}>
+                Gerar Códigos
+              </Button>
+              <Button variant="outline" onClick={() => setShowLabels(true)}>
+                Imprimir Etiquetas
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -461,6 +435,30 @@ export default function Products() {
             </Card>
           </div>
         )}
+        {/* Dialogs */}
+        <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+          <DialogContent>
+            <ProductForm
+              onSave={(p) => {
+                setProducts(prev => [p, ...prev]);
+                setShowProductForm(false);
+              }}
+              onCancel={() => setShowProductForm(false)}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showBarcode} onOpenChange={setShowBarcode}>
+          <DialogContent className="max-w-3xl">
+            <BarcodeGenerator />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showLabels} onOpenChange={setShowLabels}>
+          <DialogContent className="max-w-3xl">
+            <ThermalPrintManager />
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
