@@ -1,31 +1,36 @@
 import DashboardLayout from "@/components/DashboardLayout";
+import { useState } from "react";
 import ProductionDashboard from "@/components/ProductionDashboard";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Play, Download, Settings } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ProductionReport from "@/components/ProductionReport";
+import ThermalPrintManager from "@/components/ThermalPrintManager";
+import { Play, Download, Printer } from "lucide-react";
+import DashboardLayout from "@/components/DashboardLayout";
 
 export default function Production() {
+  const [showReport, setShowReport] = useState(false);
+  const [showPrint, setShowPrint] = useState(false);
+  const [showNewTask, setShowNewTask] = useState(false);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Acompanhamento de Produção
-            </h1>
-            <p className="text-muted-foreground">
-              Monitore e controle o processo de fabricação em tempo real
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">Acompanhamento de Produção</h1>
+            <p className="text-muted-foreground">Monitore e controle o processo de fabricação em tempo real</p>
           </div>
           <div className="flex items-center space-x-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowReport(true)}>
               <Download className="h-4 w-4 mr-2" />
               Relatório
             </Button>
-            <Button variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
-              Configurações
+            <Button variant="outline" onClick={() => setShowPrint(true)}>
+              <Printer className="h-4 w-4 mr-2" />
+              Etiquetas
             </Button>
-            <Button className="bg-biobox-green hover:bg-biobox-green-dark">
+            <Button className="bg-biobox-green hover:bg-biobox-green-dark" onClick={() => setShowNewTask(true)}>
               <Play className="h-4 w-4 mr-2" />
               Nova Tarefa
             </Button>
@@ -33,6 +38,31 @@ export default function Production() {
         </div>
 
         <ProductionDashboard />
+
+        <Dialog open={showReport} onOpenChange={setShowReport}>
+          <DialogContent className="max-w-5xl">
+            <ProductionReport onClose={() => setShowReport(false)} />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showPrint} onOpenChange={setShowPrint}>
+          <DialogContent className="max-w-4xl">
+            <ThermalPrintManager />
+          </DialogContent>
+        </Dialog>
+
+        {/* Placeholder dialog hook for New Task - can be replaced with full task form */}
+        <Dialog open={showNewTask} onOpenChange={setShowNewTask}>
+          <DialogContent className="max-w-xl">
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold">Cadastro de Tarefa de Produção</h3>
+              <p className="text-sm text-muted-foreground">Selecione um pedido na tela de Pedidos e avance para Produção para gerar tarefas automaticamente. Em breve adicionaremos um formulário completo de tarefa.</p>
+              <div className="flex justify-end">
+                <Button onClick={() => setShowNewTask(false)}>Fechar</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
