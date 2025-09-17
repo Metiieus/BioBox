@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useSupabase, Order } from "@/hooks/useSupabase";
@@ -12,7 +18,10 @@ interface NewProductionTaskProps {
   onSaved?: () => void;
 }
 
-export default function NewProductionTask({ onClose, onSaved }: NewProductionTaskProps) {
+export default function NewProductionTask({
+  onClose,
+  onSaved,
+}: NewProductionTaskProps) {
   const { getOrders } = useSupabase();
   const [orders, setOrders] = useState<Order[]>([]);
   const [form, setForm] = useState({
@@ -42,7 +51,9 @@ export default function NewProductionTask({ onClose, onSaved }: NewProductionTas
       task_name: form.task_name,
       priority: form.priority,
       assigned_operator: form.assigned_operator || null,
-      estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
+      estimated_hours: form.estimated_hours
+        ? Number(form.estimated_hours)
+        : null,
       notes: form.notes || null,
       status: "pending",
       created_at: new Date().toISOString(),
@@ -59,20 +70,32 @@ export default function NewProductionTask({ onClose, onSaved }: NewProductionTas
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Pedido</Label>
-            <Select value={form.order_id} onValueChange={(v: any) => setForm(prev => ({ ...prev, order_id: v }))}>
+            <Select
+              value={form.order_id}
+              onValueChange={(v: any) =>
+                setForm((prev) => ({ ...prev, order_id: v }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecionar" />
               </SelectTrigger>
               <SelectContent>
-                {orders.map(o => (
-                  <SelectItem key={o.id} value={o.id}>{o.order_number} • {o.customer_name}</SelectItem>
+                {orders.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.order_number} • {o.customer_name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <Label>Prioridade</Label>
-            <Select value={form.priority} onValueChange={(v: any) => setForm(prev => ({ ...prev, priority: v }))}>
+            <Select
+              value={form.priority}
+              onValueChange={(v: any) =>
+                setForm((prev) => ({ ...prev, priority: v }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -87,25 +110,65 @@ export default function NewProductionTask({ onClose, onSaved }: NewProductionTas
         </div>
         <div>
           <Label>Nome da Tarefa</Label>
-          <Input value={form.task_name} onChange={e => setForm(prev => ({ ...prev, task_name: e.target.value }))} placeholder="Ex: Corte de MDF" />
+          <Input
+            value={form.task_name}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, task_name: e.target.value }))
+            }
+            placeholder="Ex: Corte de MDF"
+          />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Operador (opcional)</Label>
-            <Input value={form.assigned_operator} onChange={e => setForm(prev => ({ ...prev, assigned_operator: e.target.value }))} placeholder="Nome do operador" />
+            <Input
+              value={form.assigned_operator}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  assigned_operator: e.target.value,
+                }))
+              }
+              placeholder="Nome do operador"
+            />
           </div>
           <div>
             <Label>Horas Estimadas (opcional)</Label>
-            <Input type="number" min="0" step="0.5" value={form.estimated_hours} onChange={e => setForm(prev => ({ ...prev, estimated_hours: e.target.value }))} />
+            <Input
+              type="number"
+              min="0"
+              step="0.5"
+              value={form.estimated_hours}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  estimated_hours: e.target.value,
+                }))
+              }
+            />
           </div>
         </div>
         <div>
           <Label>Observações</Label>
-          <Textarea rows={3} value={form.notes} onChange={e => setForm(prev => ({ ...prev, notes: e.target.value }))} />
+          <Textarea
+            rows={3}
+            value={form.notes}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, notes: e.target.value }))
+            }
+          />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button className="bg-biobox-green hover:bg-biobox-green-dark" onClick={handleSave} disabled={!canSave()}>Salvar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            className="bg-biobox-green hover:bg-biobox-green-dark"
+            onClick={handleSave}
+            disabled={!canSave()}
+          >
+            Salvar
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -18,8 +18,12 @@ export default function Production() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Acompanhamento de Produção</h1>
-            <p className="text-muted-foreground">Monitore e controle o processo de fabricação em tempo real</p>
+            <h1 className="text-2xl font-bold text-foreground">
+              Acompanhamento de Produção
+            </h1>
+            <p className="text-muted-foreground">
+              Monitore e controle o processo de fabricação em tempo real
+            </p>
           </div>
           <div className="flex items-center space-x-2">
             <Button variant="outline" onClick={() => setShowReport(true)}>
@@ -30,7 +34,10 @@ export default function Production() {
               <Printer className="h-4 w-4 mr-2" />
               Etiquetas
             </Button>
-            <Button className="bg-biobox-green hover:bg-biobox-green-dark" onClick={() => setShowNewTask(true)}>
+            <Button
+              className="bg-biobox-green hover:bg-biobox-green-dark"
+              onClick={() => setShowNewTask(true)}
+            >
               <Play className="h-4 w-4 mr-2" />
               Nova Tarefa
             </Button>
