@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import ProductionReport from "@/components/ProductionReport";
 import ThermalPrintManager from "@/components/ThermalPrintManager";
+import NewProductionTask from "@/components/NewProductionTask";
 import { Play, Download, Printer } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 
