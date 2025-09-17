@@ -51,16 +51,9 @@ export default function Production() {
           </DialogContent>
         </Dialog>
 
-        {/* Placeholder dialog hook for New Task - can be replaced with full task form */}
         <Dialog open={showNewTask} onOpenChange={setShowNewTask}>
-          <DialogContent className="max-w-xl">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Cadastro de Tarefa de Produção</h3>
-              <p className="text-sm text-muted-foreground">Selecione um pedido na tela de Pedidos e avance para Produção para gerar tarefas automaticamente. Em breve adicionaremos um formulário completo de tarefa.</p>
-              <div className="flex justify-end">
-                <Button onClick={() => setShowNewTask(false)}>Fechar</Button>
-              </div>
-            </div>
+          <DialogContent className="max-w-2xl">
+            <NewProductionTask onClose={() => setShowNewTask(false)} />
           </DialogContent>
         </Dialog>
       </div>
