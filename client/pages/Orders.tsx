@@ -5,76 +5,98 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Package, 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
-  Printer, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Package,
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit,
+  Printer,
   Download,
   Clock,
   AlertTriangle,
   CheckCircle,
   User,
   Calendar,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSupabase, Order } from "@/hooks/useSupabase";
 
 const statusLabels = {
-  pending: 'Pendente',
-  confirmed: 'Confirmado',
-  in_production: 'Em Produção',
-  quality_check: 'Controle de Qualidade',
-  ready: 'Pronto',
-  delivered: 'Entregue',
-  cancelled: 'Cancelado'
+  pending: "Pendente",
+  confirmed: "Confirmado",
+  in_production: "Em Produção",
+  quality_check: "Controle de Qualidade",
+  ready: "Pronto",
+  delivered: "Entregue",
+  cancelled: "Cancelado",
 };
 
 const statusColors = {
-  pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  confirmed: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  in_production: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  quality_check: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  ready: 'bg-green-500/10 text-green-500 border-green-500/20',
-  delivered: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-  cancelled: 'bg-red-500/10 text-red-500 border-red-500/20'
+  pending: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+  confirmed: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  in_production: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  quality_check: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+  ready: "bg-green-500/10 text-green-500 border-green-500/20",
+  delivered: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+  cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
 const priorityLabels = {
-  low: 'Baixa',
-  medium: 'Média',
-  high: 'Alta',
-  urgent: 'Urgente'
+  low: "Baixa",
+  medium: "Média",
+  high: "Alta",
+  urgent: "Urgente",
 };
 
 const priorityColors = {
-  low: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-orange-100 text-orange-800',
-  urgent: 'bg-red-100 text-red-800'
+  low: "bg-green-100 text-green-800",
+  medium: "bg-yellow-100 text-yellow-800",
+  high: "bg-orange-100 text-orange-800",
+  urgent: "bg-red-100 text-red-800",
 };
 
 export default function OrdersSupabase() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | Order['status']>("all");
-  const [priorityFilter, setPriorityFilter] = useState<"all" | Order['priority']>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | Order["status"]>(
+    "all",
+  );
+  const [priorityFilter, setPriorityFilter] = useState<
+    "all" | Order["priority"]
+  >("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
-  
+
   const { hasPermission } = useAuth();
-  const { getOrders, createOrder, isConnected } = useSupabase();
+  const { getOrders, createOrder, updateOrder, isConnected } = useSupabase();
 
   useEffect(() => {
     loadOrders();
@@ -86,18 +108,23 @@ export default function OrdersSupabase() {
       const ordersData = await getOrders();
       setOrders(ordersData);
     } catch (error) {
-      console.error('Erro ao carregar pedidos:', error);
+      console.error("Erro ao carregar pedidos:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
-      const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (order.customer_name || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-      const matchesPriority = priorityFilter === "all" || order.priority === priorityFilter;
+    return orders.filter((order) => {
+      const matchesSearch =
+        order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.customer_name || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" || order.status === statusFilter;
+      const matchesPriority =
+        priorityFilter === "all" || order.priority === priorityFilter;
       const matchesTab = activeTab === "all" || order.status === activeTab;
       return matchesSearch && matchesStatus && matchesPriority && matchesTab;
     });
@@ -106,13 +133,21 @@ export default function OrdersSupabase() {
   // Statistics
   const stats = useMemo(() => {
     const totalOrders = orders.length;
-    const pendingOrders = orders.filter(o => o.status === 'pending').length;
-    const inProductionOrders = orders.filter(o => o.status === 'in_production').length;
-    const readyOrders = orders.filter(o => o.status === 'ready').length;
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total_amount, 0);
-    const urgentOrders = orders.filter(o => o.priority === 'urgent').length;
-    const overdueOrders = orders.filter(o => 
-      o.delivery_date && new Date() > new Date(o.delivery_date) && !['delivered', 'cancelled'].includes(o.status)
+    const pendingOrders = orders.filter((o) => o.status === "pending").length;
+    const inProductionOrders = orders.filter(
+      (o) => o.status === "in_production",
+    ).length;
+    const readyOrders = orders.filter((o) => o.status === "ready").length;
+    const totalRevenue = orders.reduce(
+      (sum, order) => sum + order.total_amount,
+      0,
+    );
+    const urgentOrders = orders.filter((o) => o.priority === "urgent").length;
+    const overdueOrders = orders.filter(
+      (o) =>
+        o.delivery_date &&
+        new Date() > new Date(o.delivery_date) &&
+        !["delivered", "cancelled"].includes(o.status),
     ).length;
 
     return {
@@ -122,7 +157,7 @@ export default function OrdersSupabase() {
       readyOrders,
       totalRevenue,
       urgentOrders,
-      overdueOrders
+      overdueOrders,
     };
   }, [orders]);
 
@@ -130,10 +165,10 @@ export default function OrdersSupabase() {
     try {
       const createdOrder = await createOrder(newOrderData);
       if (createdOrder) {
-        setOrders(prevOrders => [createdOrder, ...prevOrders]);
+        setOrders((prevOrders) => [createdOrder, ...prevOrders]);
       }
     } catch (error) {
-      console.error('Erro ao criar pedido:', error);
+      console.error("Erro ao criar pedido:", error);
     }
   };
 
@@ -142,14 +177,99 @@ export default function OrdersSupabase() {
     setShowOrderDetails(true);
   };
 
+  const applyUpdate = (updated: Order) => {
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    if (selectedOrder && selectedOrder.id === updated.id)
+      setSelectedOrder(updated);
+  };
+
+  const handleTransition = async (
+    order: Order,
+    nextStatus: Order["status"],
+    progress?: number,
+  ) => {
+    const updates: Partial<Order> = { status: nextStatus };
+    if (typeof progress === "number") updates.production_progress = progress;
+    const updated = await updateOrder(order.id, updates);
+    if (updated) applyUpdate(updated);
+  };
+
+  const availableActions = (
+    order: Order,
+  ): {
+    label: string;
+    next: Order["status"];
+    perm: string;
+    progress?: number;
+  }[] => {
+    const actions: {
+      label: string;
+      next: Order["status"];
+      perm: string;
+      progress?: number;
+    }[] = [];
+    switch (order.status) {
+      case "pending":
+        actions.push({
+          label: "Aceitar",
+          next: "confirmed",
+          perm: "orders:approve",
+          progress: 0,
+        });
+        actions.push({
+          label: "Cancelar",
+          next: "cancelled",
+          perm: "orders:cancel",
+        });
+        break;
+      case "confirmed":
+        actions.push({
+          label: "Enviar p/ Produção",
+          next: "in_production",
+          perm: "orders:advance",
+          progress: Math.max(order.production_progress, 10),
+        });
+        actions.push({
+          label: "Cancelar",
+          next: "cancelled",
+          perm: "orders:cancel",
+        });
+        break;
+      case "in_production":
+        actions.push({
+          label: "Controle de Qualidade",
+          next: "quality_check",
+          perm: "orders:advance",
+          progress: Math.max(order.production_progress, 80),
+        });
+        break;
+      case "quality_check":
+        actions.push({
+          label: "Marcar Pronto",
+          next: "ready",
+          perm: "orders:advance",
+          progress: 100,
+        });
+        break;
+      case "ready":
+        actions.push({
+          label: "Entregar",
+          next: "delivered",
+          perm: "orders:deliver",
+        });
+        break;
+    }
+    return actions;
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    return new Date(dateString).toLocaleDateString("pt-BR");
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
@@ -181,8 +301,12 @@ export default function OrdersSupabase() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Gerenciamento de Pedidos</h1>
-            <p className="text-muted-foreground">Agende e acompanhe seus pedidos de produção</p>
+            <h1 className="text-3xl font-bold text-foreground">
+              Gerenciamento de Pedidos
+            </h1>
+            <p className="text-muted-foreground">
+              Agende e acompanhe seus pedidos de produção
+            </p>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Package className="h-4 w-4" />
@@ -196,13 +320,23 @@ export default function OrdersSupabase() {
                 <AlertTriangle className="h-4 w-4" />
                 {stats.pendingOrders} pendentes
               </span>
-              {stats.urgentOrders > 0 && <span className="text-red-500">🚨 {stats.urgentOrders} urgentes</span>}
-              {stats.overdueOrders > 0 && <span className="text-red-500">⚠️ {stats.overdueOrders} atrasados</span>}
-              {!isConnected && <span className="text-orange-500">📱 Modo offline</span>}
+              {stats.urgentOrders > 0 && (
+                <span className="text-red-500">
+                  🚨 {stats.urgentOrders} urgentes
+                </span>
+              )}
+              {stats.overdueOrders > 0 && (
+                <span className="text-red-500">
+                  ⚠️ {stats.overdueOrders} atrasados
+                </span>
+              )}
+              {!isConnected && (
+                <span className="text-orange-500">📱 Modo offline</span>
+              )}
             </div>
           </div>
-          {hasPermission('orders', 'create') && (
-            <Button 
+          {hasPermission("orders", "create") && (
+            <Button
               className="bg-biobox-green hover:bg-biobox-green-dark"
               onClick={() => setShowNewOrderForm(true)}
             >
@@ -219,8 +353,12 @@ export default function OrdersSupabase() {
               <div className="flex items-center">
                 <Package className="h-8 w-8 text-biobox-green" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Total de Pedidos</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.totalOrders}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Total de Pedidos
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.totalOrders}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -231,8 +369,12 @@ export default function OrdersSupabase() {
               <div className="flex items-center">
                 <Clock className="h-8 w-8 text-yellow-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Pendentes</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.pendingOrders}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Pendentes
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.pendingOrders}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -243,8 +385,12 @@ export default function OrdersSupabase() {
               <div className="flex items-center">
                 <User className="h-8 w-8 text-purple-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Em Produção</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.inProductionOrders}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Em Produção
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.inProductionOrders}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -255,8 +401,12 @@ export default function OrdersSupabase() {
               <div className="flex items-center">
                 <CheckCircle className="h-8 w-8 text-green-500" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Prontos</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.readyOrders}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Prontos
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.readyOrders}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -267,8 +417,12 @@ export default function OrdersSupabase() {
               <div className="flex items-center">
                 <DollarSign className="h-8 w-8 text-biobox-green" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Receita Total</p>
-                  <p className="text-2xl font-bold text-foreground">{formatCurrency(stats.totalRevenue)}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Receita Total
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {formatCurrency(stats.totalRevenue)}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -286,27 +440,37 @@ export default function OrdersSupabase() {
               className="pl-10"
             />
           </div>
-          
-          <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+
+          <Select
+            value={statusFilter}
+            onValueChange={(value: any) => setStatusFilter(value)}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todos os Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Status</SelectItem>
               {Object.entries(statusLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={priorityFilter} onValueChange={(value: any) => setPriorityFilter(value)}>
+          <Select
+            value={priorityFilter}
+            onValueChange={(value: any) => setPriorityFilter(value)}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todas as Prioridades" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Prioridades</SelectItem>
               {Object.entries(priorityLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -314,7 +478,7 @@ export default function OrdersSupabase() {
           <Button variant="outline" size="icon">
             <Download className="h-4 w-4" />
           </Button>
-          
+
           <Button variant="outline" size="icon">
             <Printer className="h-4 w-4" />
           </Button>
@@ -331,14 +495,28 @@ export default function OrdersSupabase() {
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="all">Todos ({stats.totalOrders})</TabsTrigger>
-                <TabsTrigger value="pending">Pendentes ({stats.pendingOrders})</TabsTrigger>
-                <TabsTrigger value="confirmed">Confirmados ({orders.filter(o => o.status === 'confirmed').length})</TabsTrigger>
-                <TabsTrigger value="in_production">Em Produção ({stats.inProductionOrders})</TabsTrigger>
-                <TabsTrigger value="ready">Prontos ({stats.readyOrders})</TabsTrigger>
-                <TabsTrigger value="delivered">Entregues ({orders.filter(o => o.status === 'delivered').length})</TabsTrigger>
+                <TabsTrigger value="all">
+                  Todos ({stats.totalOrders})
+                </TabsTrigger>
+                <TabsTrigger value="pending">
+                  Pendentes ({stats.pendingOrders})
+                </TabsTrigger>
+                <TabsTrigger value="confirmed">
+                  Confirmados (
+                  {orders.filter((o) => o.status === "confirmed").length})
+                </TabsTrigger>
+                <TabsTrigger value="in_production">
+                  Em Produção ({stats.inProductionOrders})
+                </TabsTrigger>
+                <TabsTrigger value="ready">
+                  Prontos ({stats.readyOrders})
+                </TabsTrigger>
+                <TabsTrigger value="delivered">
+                  Entregues (
+                  {orders.filter((o) => o.status === "delivered").length})
+                </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value={activeTab} className="mt-6">
                 <Table>
                   <TableHeader>
@@ -357,18 +535,30 @@ export default function OrdersSupabase() {
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.map((order) => {
-                      const daysUntilDelivery = getDaysUntilDelivery(order.delivery_date);
-                      const isOverdue = daysUntilDelivery !== null && daysUntilDelivery < 0 && !['delivered', 'cancelled'].includes(order.status);
-                      
+                      const daysUntilDelivery = getDaysUntilDelivery(
+                        order.delivery_date,
+                      );
+                      const isOverdue =
+                        daysUntilDelivery !== null &&
+                        daysUntilDelivery < 0 &&
+                        !["delivered", "cancelled"].includes(order.status);
+
                       return (
-                        <TableRow key={order.id} className={isOverdue ? "bg-red-50 dark:bg-red-950/20" : ""}>
+                        <TableRow
+                          key={order.id}
+                          className={
+                            isOverdue ? "bg-red-50 dark:bg-red-950/20" : ""
+                          }
+                        >
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <div
                                 className={`w-2 h-2 rounded-full ${priorityColors[order.priority]}`}
                               />
                               <div>
-                                <div className="font-medium">{order.order_number}</div>
+                                <div className="font-medium">
+                                  {order.order_number}
+                                </div>
                                 {order.assigned_operator && (
                                   <div className="flex items-center text-xs text-muted-foreground">
                                     <User className="h-3 w-3 mr-1" />
@@ -380,28 +570,45 @@ export default function OrdersSupabase() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium">{order.customer_name}</div>
-                              <div className="text-xs text-muted-foreground">{order.customer_phone}</div>
+                              <div className="font-medium">
+                                {order.customer_name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {order.customer_phone}
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div>
-                              <div className="font-medium text-biobox-green">{order.seller_name}</div>
-                              <div className="text-xs text-muted-foreground">Vendedor</div>
+                              <div className="font-medium text-biobox-green">
+                                {order.seller_name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Vendedor
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm">{formatDate(order.scheduled_date)}</div>
+                            <div className="text-sm">
+                              {formatDate(order.scheduled_date)}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {order.delivery_date ? formatDate(order.delivery_date) : '-'}
+                              {order.delivery_date
+                                ? formatDate(order.delivery_date)
+                                : "-"}
                               {daysUntilDelivery !== null && (
-                                <div className={`text-xs ${isOverdue ? 'text-red-500' : daysUntilDelivery <= 3 ? 'text-orange-500' : 'text-muted-foreground'}`}>
-                                  {isOverdue ? `${Math.abs(daysUntilDelivery)} dias atrasado` : 
-                                   daysUntilDelivery === 0 ? 'Hoje' :
-                                   daysUntilDelivery === 1 ? 'Amanhã' :
-                                   `${daysUntilDelivery} dias`}
+                                <div
+                                  className={`text-xs ${isOverdue ? "text-red-500" : daysUntilDelivery <= 3 ? "text-orange-500" : "text-muted-foreground"}`}
+                                >
+                                  {isOverdue
+                                    ? `${Math.abs(daysUntilDelivery)} dias atrasado`
+                                    : daysUntilDelivery === 0
+                                      ? "Hoje"
+                                      : daysUntilDelivery === 1
+                                        ? "Amanhã"
+                                        : `${daysUntilDelivery} dias`}
                                 </div>
                               )}
                             </div>
@@ -409,12 +616,16 @@ export default function OrdersSupabase() {
                           <TableCell>
                             <div className="flex items-center space-x-2">
                               <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-biobox-green h-2 rounded-full" 
-                                  style={{ width: `${order.production_progress}%` }}
+                                <div
+                                  className="bg-biobox-green h-2 rounded-full"
+                                  style={{
+                                    width: `${order.production_progress}%`,
+                                  }}
                                 ></div>
                               </div>
-                              <span className="text-xs text-muted-foreground">{order.production_progress}%</span>
+                              <span className="text-xs text-muted-foreground">
+                                {order.production_progress}%
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
@@ -439,7 +650,27 @@ export default function OrdersSupabase() {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              {hasPermission('orders', 'edit') && (
+                              {availableActions(order)
+                                .filter((a) =>
+                                  hasPermission("orders", a.perm.split(":")[1]),
+                                )
+                                .map((action) => (
+                                  <Button
+                                    key={action.label}
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleTransition(
+                                        order,
+                                        action.next,
+                                        action.progress,
+                                      )
+                                    }
+                                  >
+                                    {action.label}
+                                  </Button>
+                                ))}
+                              {hasPermission("orders", "edit") && (
                                 <Button variant="ghost" size="icon">
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -463,39 +694,75 @@ export default function OrdersSupabase() {
         <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Detalhes do Pedido {selectedOrder?.order_number}</DialogTitle>
+              <DialogTitle>
+                Detalhes do Pedido {selectedOrder?.order_number}
+              </DialogTitle>
             </DialogHeader>
             {selectedOrder && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-semibold mb-2">Informações do Cliente</h3>
-                    <p><strong>Nome:</strong> {selectedOrder.customer_name}</p>
-                    <p><strong>Telefone:</strong> {selectedOrder.customer_phone}</p>
-                    <p><strong>Email:</strong> {selectedOrder.customer_email}</p>
+                    <h3 className="font-semibold mb-2">
+                      Informações do Cliente
+                    </h3>
+                    <p>
+                      <strong>Nome:</strong> {selectedOrder.customer_name}
+                    </p>
+                    <p>
+                      <strong>Telefone:</strong> {selectedOrder.customer_phone}
+                    </p>
+                    <p>
+                      <strong>Email:</strong> {selectedOrder.customer_email}
+                    </p>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">Informações do Pedido</h3>
-                    <p><strong>Vendedor:</strong> {selectedOrder.seller_name}</p>
-                    <p><strong>Status:</strong> {statusLabels[selectedOrder.status]}</p>
-                    <p><strong>Prioridade:</strong> {priorityLabels[selectedOrder.priority]}</p>
-                    <p><strong>Progresso:</strong> {selectedOrder.production_progress}%</p>
+                    <h3 className="font-semibold mb-2">
+                      Informações do Pedido
+                    </h3>
+                    <p>
+                      <strong>Vendedor:</strong> {selectedOrder.seller_name}
+                    </p>
+                    <p>
+                      <strong>Status:</strong>{" "}
+                      {statusLabels[selectedOrder.status]}
+                    </p>
+                    <p>
+                      <strong>Prioridade:</strong>{" "}
+                      {priorityLabels[selectedOrder.priority]}
+                    </p>
+                    <p>
+                      <strong>Progresso:</strong>{" "}
+                      {selectedOrder.production_progress}%
+                    </p>
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-2">Datas</h3>
                   <div className="grid grid-cols-3 gap-4">
-                    <p><strong>Criado em:</strong> {formatDate(selectedOrder.created_at)}</p>
-                    <p><strong>Produção:</strong> {formatDate(selectedOrder.scheduled_date)}</p>
-                    <p><strong>Entrega:</strong> {selectedOrder.delivery_date ? formatDate(selectedOrder.delivery_date) : 'Não definida'}</p>
+                    <p>
+                      <strong>Criado em:</strong>{" "}
+                      {formatDate(selectedOrder.created_at)}
+                    </p>
+                    <p>
+                      <strong>Produção:</strong>{" "}
+                      {formatDate(selectedOrder.scheduled_date)}
+                    </p>
+                    <p>
+                      <strong>Entrega:</strong>{" "}
+                      {selectedOrder.delivery_date
+                        ? formatDate(selectedOrder.delivery_date)
+                        : "Não definida"}
+                    </p>
                   </div>
                 </div>
 
                 {selectedOrder.notes && (
                   <div>
                     <h3 className="font-semibold mb-2">Observações</h3>
-                    <p className="text-muted-foreground">{selectedOrder.notes}</p>
+                    <p className="text-muted-foreground">
+                      {selectedOrder.notes}
+                    </p>
                   </div>
                 )}
 
@@ -508,7 +775,21 @@ export default function OrdersSupabase() {
                       <Printer className="h-4 w-4 mr-2" />
                       Imprimir
                     </Button>
-                    {hasPermission('orders', 'edit') && (
+                    {availableActions(selectedOrder)
+                      .filter((a) =>
+                        hasPermission("orders", a.perm.split(":")[1]),
+                      )
+                      .map((a) => (
+                        <Button
+                          key={a.label}
+                          onClick={() =>
+                            handleTransition(selectedOrder, a.next, a.progress)
+                          }
+                        >
+                          {a.label}
+                        </Button>
+                      ))}
+                    {hasPermission("orders", "edit") && (
                       <Button>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Pedido
@@ -531,4 +812,3 @@ export default function OrdersSupabase() {
     </DashboardLayout>
   );
 }
-

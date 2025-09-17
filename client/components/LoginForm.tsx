@@ -1,31 +1,31 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LogIn, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LogIn, AlertCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
       const success = await login(email, password);
       if (!success) {
-        setError('Email ou senha incorretos');
+        setError("Email ou senha incorretos");
       }
     } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.');
+      setError("Erro ao fazer login. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -79,20 +79,14 @@ export default function LoginForm() {
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-biobox-green hover:bg-biobox-green-dark"
               disabled={isLoading}
             >
               <LogIn className="h-4 w-4 mr-2" />
-              {isLoading ? 'Entrando...' : 'Entrar'}
+              {isLoading ? "Entrando..." : "Entrar"}
             </Button>
-
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Usuários de demonstração:</p>
-              <p>Admin: admin@bioboxsys.com / password</p>
-              <p>Vendedor: carlos@bioboxsys.com / password</p>
-            </div>
           </form>
         </CardContent>
       </Card>
