@@ -23,6 +23,8 @@ import {
 import { User as UserType, mockUsers, defaultPermissions, Permission } from "@/types/user";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useSupabase } from "@/hooks/useSupabase";
+import { supabase } from "@/lib/supabase";
 
 interface UserManagementProps {
   onUserCreated?: (user: UserType) => void;
@@ -31,6 +33,7 @@ interface UserManagementProps {
 export default function UserManagement({ onUserCreated }: UserManagementProps) {
   const [users, setUsers] = useState<UserType[]>(mockUsers);
   const { user } = useAuth();
+  const { isConnected } = useSupabase();
   const [showForm, setShowForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | undefined>();
   const [showPermissions, setShowPermissions] = useState(false);
@@ -73,7 +76,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
     setShowForm(true);
   };
 
-  const handleSaveUser = () => {
+  const handleSaveUser = async () => {
     const userPermissions = defaultPermissions.filter(p => 
       formData.permissions.includes(p.id)
     );
@@ -95,19 +98,55 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
       ));
     } else {
       // Create new user
-      const newUser: UserType = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        permissions: userPermissions,
-        status: formData.status,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: '1' // Current admin user
-      };
-      setUsers(prev => [newUser, ...prev]);
-      onUserCreated?.(newUser);
+      if (isConnected) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const token = session.session?.access_token;
+          if (!token) throw new Error('not_authenticated');
+          const res = await fetch('/api/admin/create-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+              name: formData.name,
+              role: formData.role,
+              permissions: userPermissions.map(p => p.id)
+            })
+          });
+          if (!res.ok) throw new Error('create_failed');
+          const created = await res.json();
+          const newUser: UserType = {
+            id: created.id,
+            name: created.name,
+            email: created.email,
+            role: created.role,
+            permissions: userPermissions,
+            status: formData.status,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            createdBy: '1'
+          };
+          setUsers(prev => [newUser, ...prev]);
+          onUserCreated?.(newUser);
+        } catch (e) {
+          console.error('Erro ao criar usuário no banco:', e);
+        }
+      } else {
+        const newUser: UserType = {
+          id: Date.now().toString(),
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          permissions: userPermissions,
+          status: formData.status,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: '1'
+        };
+        setUsers(prev => [newUser, ...prev]);
+        onUserCreated?.(newUser);
+      }
     }
 
     setShowForm(false);
