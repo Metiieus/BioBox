@@ -603,10 +603,24 @@ export default function Settings() {
                       <Download className="h-4 w-4 mr-2" />
                       Fazer Backup Agora
                     </Button>
-                    <Button className="w-full" variant="outline">
+                    <Button className="w-full" variant="outline" onClick={() => document.getElementById('restore-input')?.click()}>
                       <Upload className="h-4 w-4 mr-2" />
                       Restaurar Backup
                     </Button>
+                    <input id="restore-input" type="file" accept="application/json" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const text = await file.text();
+                      try {
+                        const data = JSON.parse(text);
+                        if (data.users) localStorage.setItem('biobox_users', JSON.stringify(data.users));
+                        if (data.customers) localStorage.setItem('biobox_customers', JSON.stringify(data.customers));
+                        if (data.products) localStorage.setItem('biobox_products', JSON.stringify(data.products));
+                        if (data.orders) localStorage.setItem('biobox_orders', JSON.stringify(data.orders));
+                        setSaved(true);
+                        setTimeout(() => setSaved(false), 3000);
+                      } catch {}
+                    }} />
                   </div>
 
                   <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
