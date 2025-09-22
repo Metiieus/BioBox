@@ -101,6 +101,8 @@ export default function Settings() {
 
   const [saved, setSaved] = useState(false);
   const { getUsers, getCustomers, getProducts, getOrders } = useSupabase();
+  const { user } = useAuth();
+  const { getUsers, getCustomers, getProducts, getOrders } = useSupabase();
 
   const handleSaveUserSettings = () => {
     // Simulate save
