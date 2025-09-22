@@ -4,10 +4,10 @@ import path from "path";
 import { createServer } from "./server";
 
 export default defineConfig(() => ({
-  root: path.resolve(__dirname, "client"),             // raiz do app (onde está o index.html)
+  root: path.resolve(__dirname, "client"), // raiz do app (onde está o index.html)
   publicDir: path.resolve(__dirname, "public"),
   build: {
-    outDir: path.resolve(__dirname, "dist/spa"),       // caminho absoluto
+    outDir: path.resolve(__dirname, "dist/spa"), // caminho absoluto
   },
   resolve: {
     alias: {
@@ -38,7 +38,7 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
       // monte a API em /api para NÃO interceptar "/"
-      server.middlewares.use("/api", app);
+      server.middlewares.use(app);
     },
   };
 }

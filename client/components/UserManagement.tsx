@@ -3,25 +3,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Shield, 
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Shield,
   User,
   Save,
   X,
   Eye,
-  EyeOff
+  EyeOff,
 } from "lucide-react";
-import { User as UserType, mockUsers, defaultPermissions, Permission } from "@/types/user";
+import {
+  User as UserType,
+  mockUsers,
+  defaultPermissions,
+  Permission,
+} from "@/types/user";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useSupabase } from "@/hooks/useSupabase";
+import { supabase } from "@/lib/supabase";
 
 interface UserManagementProps {
   onUserCreated?: (user: UserType) => void;
@@ -29,6 +50,8 @@ interface UserManagementProps {
 
 export default function UserManagement({ onUserCreated }: UserManagementProps) {
   const [users, setUsers] = useState<UserType[]>(mockUsers);
+  const { user } = useAuth();
+  const { isConnected } = useSupabase();
   const [showForm, setShowForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | undefined>();
   const [showPermissions, setShowPermissions] = useState(false);
@@ -36,23 +59,24 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
   const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: 'seller' as 'admin' | 'seller',
-    status: 'active' as 'active' | 'inactive',
-    permissions: [] as string[]
+    name: "",
+    email: "",
+    password: "",
+    role: "seller" as "admin" | "seller",
+    status: "active" as "active" | "inactive",
+    permissions: [] as string[],
   });
 
   const handleCreateUser = () => {
+    if (user?.role !== "admin") return;
     setSelectedUser(undefined);
     setFormData({
-      name: '',
-      email: '',
-      password: '',
-      role: 'seller',
-      status: 'active',
-      permissions: ['orders-full', 'customers-full']
+      name: "",
+      email: "",
+      password: "",
+      role: "seller",
+      status: "active",
+      permissions: ["orders-full", "customers-full"],
     });
     setShowForm(true);
   };
@@ -62,49 +86,90 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
     setFormData({
       name: user.name,
       email: user.email,
-      password: '',
+      password: "",
       role: user.role,
       status: user.status,
-      permissions: user.permissions.map(p => p.id)
+      permissions: user.permissions.map((p) => p.id),
     });
     setShowForm(true);
   };
 
-  const handleSaveUser = () => {
-    const userPermissions = defaultPermissions.filter(p => 
-      formData.permissions.includes(p.id)
+  const handleSaveUser = async () => {
+    const userPermissions = defaultPermissions.filter((p) =>
+      formData.permissions.includes(p.id),
     );
 
     if (selectedUser) {
       // Edit existing user
-      setUsers(prev => prev.map(user =>
-        user.id === selectedUser.id
-          ? {
-              ...user,
-              name: formData.name,
-              email: formData.email,
-              role: formData.role,
-              status: formData.status,
-              permissions: userPermissions,
-              updatedAt: new Date()
-            }
-          : user
-      ));
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.id === selectedUser.id
+            ? {
+                ...user,
+                name: formData.name,
+                email: formData.email,
+                role: formData.role,
+                status: formData.status,
+                permissions: userPermissions,
+                updatedAt: new Date(),
+              }
+            : user,
+        ),
+      );
     } else {
       // Create new user
-      const newUser: UserType = {
-        id: Date.now().toString(),
-        name: formData.name,
-        email: formData.email,
-        role: formData.role,
-        permissions: userPermissions,
-        status: formData.status,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        createdBy: '1' // Current admin user
-      };
-      setUsers(prev => [newUser, ...prev]);
-      onUserCreated?.(newUser);
+      if (isConnected) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const token = session.session?.access_token;
+          if (!token) throw new Error("not_authenticated");
+          const res = await fetch("/api/admin/create-user", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+              name: formData.name,
+              role: formData.role,
+              permissions: userPermissions.map((p) => p.id),
+            }),
+          });
+          if (!res.ok) throw new Error("create_failed");
+          const created = await res.json();
+          const newUser: UserType = {
+            id: created.id,
+            name: created.name,
+            email: created.email,
+            role: created.role,
+            permissions: userPermissions,
+            status: formData.status,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            createdBy: "1",
+          };
+          setUsers((prev) => [newUser, ...prev]);
+          onUserCreated?.(newUser);
+        } catch (e) {
+          console.error("Erro ao criar usuário no banco:", e);
+        }
+      } else {
+        const newUser: UserType = {
+          id: Date.now().toString(),
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          permissions: userPermissions,
+          status: formData.status,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: "1",
+        };
+        setUsers((prev) => [newUser, ...prev]);
+        onUserCreated?.(newUser);
+      }
     }
 
     setShowForm(false);
@@ -112,14 +177,14 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
   };
 
   const handleDeleteUser = (userId: string) => {
-    setUsers(prev => prev.filter(user => user.id !== userId));
+    setUsers((prev) => prev.filter((user) => user.id !== userId));
   };
 
   const handleManagePermissions = (user: UserType) => {
     setPermissionUser(user);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      permissions: user.permissions.map(p => p.id)
+      permissions: user.permissions.map((p) => p.id),
     }));
     setShowPermissions(true);
   };
@@ -127,35 +192,37 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
   const handleSavePermissions = () => {
     if (!permissionUser) return;
 
-    const userPermissions = defaultPermissions.filter(p => 
-      formData.permissions.includes(p.id)
+    const userPermissions = defaultPermissions.filter((p) =>
+      formData.permissions.includes(p.id),
     );
 
-    setUsers(prev => prev.map(user =>
-      user.id === permissionUser.id
-        ? {
-            ...user,
-            permissions: userPermissions,
-            updatedAt: new Date()
-          }
-        : user
-    ));
+    setUsers((prev) =>
+      prev.map((user) =>
+        user.id === permissionUser.id
+          ? {
+              ...user,
+              permissions: userPermissions,
+              updatedAt: new Date(),
+            }
+          : user,
+      ),
+    );
 
     setShowPermissions(false);
     setPermissionUser(undefined);
   };
 
   const togglePermission = (permissionId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       permissions: prev.permissions.includes(permissionId)
-        ? prev.permissions.filter(id => id !== permissionId)
-        : [...prev.permissions, permissionId]
+        ? prev.permissions.filter((id) => id !== permissionId)
+        : [...prev.permissions, permissionId],
     }));
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('pt-BR').format(date);
+    return new Intl.DateTimeFormat("pt-BR").format(date);
   };
 
   return (
@@ -173,6 +240,12 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
         <Button
           onClick={handleCreateUser}
           className="bg-biobox-green hover:bg-biobox-green-dark"
+          disabled={user?.role !== "admin"}
+          title={
+            user?.role !== "admin"
+              ? "Apenas administradores podem criar usuários"
+              : undefined
+          }
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Usuário
@@ -206,46 +279,54 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                     <div className="flex items-center space-x-3">
                       <Avatar>
                         <AvatarFallback className="bg-biobox-green/10 text-biobox-green">
-                          {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          {user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {user.email}
+                        </p>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant="outline"
                       className={cn(
-                        user.role === 'admin' 
-                          ? 'bg-purple-500/10 text-purple-500 border-purple-500/20'
-                          : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                        user.role === "admin"
+                          ? "bg-purple-500/10 text-purple-500 border-purple-500/20"
+                          : "bg-blue-500/10 text-blue-500 border-blue-500/20",
                       )}
                     >
-                      {user.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                      {user.role === "admin" ? "Administrador" : "Vendedor"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant="outline"
                       className={cn(
-                        user.status === 'active'
-                          ? 'bg-biobox-green/10 text-biobox-green border-biobox-green/20'
-                          : 'bg-red-500/10 text-red-500 border-red-500/20'
+                        user.status === "active"
+                          ? "bg-biobox-green/10 text-biobox-green border-biobox-green/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20",
                       )}
                     >
-                      {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                      {user.status === "active" ? "Ativo" : "Inativo"}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">
-                      {user.lastLogin ? formatDate(user.lastLogin) : 'Nunca'}
+                      {user.lastLogin ? formatDate(user.lastLogin) : "Nunca"}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{formatDate(user.createdAt)}</span>
+                    <span className="text-sm">
+                      {formatDate(user.createdAt)}
+                    </span>
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -263,7 +344,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                       >
                         <Shield className="h-4 w-4" />
                       </Button>
-                      {user.role !== 'admin' && (
+                      {user.role !== "admin" && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -282,16 +363,22 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
       </Card>
 
       {/* User Form Modal */}
-      {showForm && (
+      {showForm && user?.role === "admin" && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center space-x-2">
                   <User className="h-5 w-5" />
-                  <span>{selectedUser ? 'Editar Usuário' : 'Novo Usuário'}</span>
+                  <span>
+                    {selectedUser ? "Editar Usuário" : "Novo Usuário"}
+                  </span>
                 </CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowForm(false)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -302,7 +389,9 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
                   placeholder="Nome do usuário"
                   required
                 />
@@ -313,21 +402,30 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                   id="email"
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  }
                   placeholder="usuario@bioboxsys.com"
                   required
                 />
               </div>
               <div>
                 <Label htmlFor="password">
-                  {selectedUser ? 'Nova Senha (deixe vazio para manter)' : 'Senha'}
+                  {selectedUser
+                    ? "Nova Senha (deixe vazio para manter)"
+                    : "Senha"}
                 </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        password: e.target.value,
+                      }))
+                    }
                     placeholder="••••••••"
                     required={!selectedUser}
                   />
@@ -338,15 +436,21 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                     className="absolute right-0 top-0 h-full px-3"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
               <div>
                 <Label htmlFor="role">Tipo de Usuário</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(value: any) => setFormData(prev => ({ ...prev, role: value }))}
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: any) =>
+                    setFormData((prev) => ({ ...prev, role: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -359,9 +463,11 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
               </div>
               <div>
                 <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value: any) => setFormData(prev => ({ ...prev, status: value }))}
+                <Select
+                  value={formData.status}
+                  onValueChange={(value: any) =>
+                    setFormData((prev) => ({ ...prev, status: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -374,13 +480,21 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
               </div>
 
               <div className="flex justify-end space-x-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowForm(false)}
+                >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSaveUser}
                   className="bg-biobox-green hover:bg-biobox-green-dark"
-                  disabled={!formData.name || !formData.email || (!selectedUser && !formData.password)}
+                  disabled={
+                    !formData.name ||
+                    !formData.email ||
+                    (!selectedUser && !formData.password)
+                  }
                 >
                   <Save className="h-4 w-4 mr-2" />
                   Salvar
@@ -401,23 +515,33 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
                   <Shield className="h-5 w-5" />
                   <span>Gerenciar Permissões - {permissionUser.name}</span>
                 </CardTitle>
-                <Button variant="ghost" size="icon" onClick={() => setShowPermissions(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowPermissions(false)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
-                {defaultPermissions.map(permission => (
-                  <div key={permission.id} className="flex items-center space-x-3 p-3 border border-border rounded-lg">
+                {defaultPermissions.map((permission) => (
+                  <div
+                    key={permission.id}
+                    className="flex items-center space-x-3 p-3 border border-border rounded-lg"
+                  >
                     <Checkbox
                       checked={formData.permissions.includes(permission.id)}
                       onCheckedChange={() => togglePermission(permission.id)}
                     />
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{permission.name}</div>
+                      <div className="font-medium text-sm">
+                        {permission.name}
+                      </div>
                       <div className="text-xs text-muted-foreground">
-                        Módulo: {permission.module} • Ações: {permission.actions.join(', ')}
+                        Módulo: {permission.module} • Ações:{" "}
+                        {permission.actions.join(", ")}
                       </div>
                     </div>
                   </div>
@@ -425,10 +549,14 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
               </div>
 
               <div className="flex justify-end space-x-4 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowPermissions(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowPermissions(false)}
+                >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   onClick={handleSavePermissions}
                   className="bg-biobox-green hover:bg-biobox-green-dark"
                 >
