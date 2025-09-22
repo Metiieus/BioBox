@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { User as UserType, mockUsers, defaultPermissions, Permission } from "@/types/user";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 interface UserManagementProps {
   onUserCreated?: (user: UserType) => void;
@@ -29,6 +30,7 @@ interface UserManagementProps {
 
 export default function UserManagement({ onUserCreated }: UserManagementProps) {
   const [users, setUsers] = useState<UserType[]>(mockUsers);
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | undefined>();
   const [showPermissions, setShowPermissions] = useState(false);
@@ -45,6 +47,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
   });
 
   const handleCreateUser = () => {
+    if (user?.role !== 'admin') return;
     setSelectedUser(undefined);
     setFormData({
       name: '',
@@ -173,6 +176,8 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
         <Button
           onClick={handleCreateUser}
           className="bg-biobox-green hover:bg-biobox-green-dark"
+          disabled={user?.role !== 'admin'}
+          title={user?.role !== 'admin' ? 'Apenas administradores podem criar usuários' : undefined}
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Usuário
@@ -282,7 +287,7 @@ export default function UserManagement({ onUserCreated }: UserManagementProps) {
       </Card>
 
       {/* User Form Modal */}
-      {showForm && (
+      {showForm && user?.role === 'admin' && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md bg-card border-border">
             <CardHeader>
