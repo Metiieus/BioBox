@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useSupabase } from "@/hooks/useSupabase";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -341,7 +343,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bell className="h-5 w-5" />
-                  <span>Configura��ões de Notificação</span>
+                  <span>Configurações de Notificação</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
