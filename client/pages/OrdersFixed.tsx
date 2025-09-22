@@ -16,7 +16,7 @@ import {
   CheckCircle,
   User
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 
 interface Order {
   id: string;

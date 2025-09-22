@@ -3,7 +3,7 @@ import MetricsCards from "@/components/MetricsCards";
 import ProductionChart from "@/components/ProductionChart";
 import RecentActivity from "@/components/RecentActivity";
 import ProductionOverview from "@/components/ProductionOverview";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function Index() {
   const { user } = useAuth();
@@ -17,7 +17,7 @@ export default function Index() {
             Bem-vindo ao BioBoxsys, {user?.name.split(' ')[0]}
           </h1>
           <p className="text-muted-foreground">
-            Sistema de Gerenciamento de Produção de Camas
+            Sistema de Gerenciamento de Produção 
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Logado como: {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}

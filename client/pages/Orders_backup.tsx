@@ -31,7 +31,7 @@ import {
   FileText,
   MoreHorizontal
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 
 interface OrderProduct {
   id: string;

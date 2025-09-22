@@ -25,7 +25,7 @@ import {
   Calendar,
   DollarSign
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 import { useSupabase, Order } from "@/hooks/useSupabase";
 
 const statusLabels = {

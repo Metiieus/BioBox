@@ -26,7 +26,7 @@ import {
   Square
 } from "lucide-react";
 import { Order, mockOrders, statusLabels, statusColors, priorityColors } from "@/types/order";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/AuthProvider";
 import { cn } from "@/lib/utils";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";

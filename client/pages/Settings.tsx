@@ -2,6 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BarcodeGenerator from "@/components/BarcodeGenerator";
 import UserManagement from "@/components/UserManagement";
+import { useSupabase } from "@/hooks/useSupabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/components/AuthProvider";
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -97,24 +99,69 @@ export default function Settings() {
   });
 
   const [saved, setSaved] = useState(false);
+  const { getUsers, getCustomers, getProducts, getOrders } = useSupabase();
+  const { user } = useAuth();
 
-  const handleSaveUserSettings = () => {
-    // Simulate save
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSaveUserSettings = async () => {
+    try {
+      const key = `user:${user?.id || 'anonymous'}`;
+      const payload = { ...userSettings };
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+      } catch {}
+      localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {}
   };
 
-  const handleSaveSystemSettings = () => {
-    // Simulate save
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSaveSystemSettings = async () => {
+    try {
+      const key = 'system';
+      const payload = { ...systemSettings };
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+      } catch {}
+      localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {}
   };
 
-  const handleBackup = () => {
-    setSystemSettings(prev => ({
-      ...prev,
-      lastBackup: new Date()
-    }));
+  const handleBackup = async () => {
+    const [users, customers, products, orders] = await Promise.all([
+      getUsers(),
+      getCustomers(),
+      getProducts(),
+      getOrders()
+    ]);
+
+    const payload = {
+      meta: {
+        generatedAt: new Date().toISOString(),
+        app: "BioBoxsys",
+        version: 1
+      },
+      users,
+      customers,
+      products,
+      orders
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    a.download = `bioboxsys-backup-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setSystemSettings(prev => ({ ...prev, lastBackup: new Date() }));
   };
 
   return (
@@ -554,10 +601,24 @@ export default function Settings() {
                       <Download className="h-4 w-4 mr-2" />
                       Fazer Backup Agora
                     </Button>
-                    <Button className="w-full" variant="outline">
+                    <Button className="w-full" variant="outline" onClick={() => document.getElementById('restore-input')?.click()}>
                       <Upload className="h-4 w-4 mr-2" />
                       Restaurar Backup
                     </Button>
+                    <input id="restore-input" type="file" accept="application/json" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const text = await file.text();
+                      try {
+                        const data = JSON.parse(text);
+                        if (data.users) localStorage.setItem('biobox_users', JSON.stringify(data.users));
+                        if (data.customers) localStorage.setItem('biobox_customers', JSON.stringify(data.customers));
+                        if (data.products) localStorage.setItem('biobox_products', JSON.stringify(data.products));
+                        if (data.orders) localStorage.setItem('biobox_orders', JSON.stringify(data.orders));
+                        setSaved(true);
+                        setTimeout(() => setSaved(false), 3000);
+                      } catch {}
+                    }} />
                   </div>
 
                   <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
