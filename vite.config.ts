@@ -38,7 +38,7 @@ function expressPlugin(): Plugin {
     configureServer(server) {
       const app = createServer();
       // monte a API em /api para NÃO interceptar "/"
-      server.middlewares.use("/api", app);
+      server.middlewares.use(app);
     },
   };
 }
