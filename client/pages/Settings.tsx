@@ -2,6 +2,7 @@ import { useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import BarcodeGenerator from "@/components/BarcodeGenerator";
 import UserManagement from "@/components/UserManagement";
+import { useSupabase } from "@/hooks/useSupabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +98,7 @@ export default function Settings() {
   });
 
   const [saved, setSaved] = useState(false);
+  const { getUsers, getCustomers, getProducts, getOrders } = useSupabase();
 
   const handleSaveUserSettings = () => {
     // Simulate save
@@ -110,11 +112,38 @@ export default function Settings() {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleBackup = () => {
-    setSystemSettings(prev => ({
-      ...prev,
-      lastBackup: new Date()
-    }));
+  const handleBackup = async () => {
+    const [users, customers, products, orders] = await Promise.all([
+      getUsers(),
+      getCustomers(),
+      getProducts(),
+      getOrders()
+    ]);
+
+    const payload = {
+      meta: {
+        generatedAt: new Date().toISOString(),
+        app: "BioBoxsys",
+        version: 1
+      },
+      users,
+      customers,
+      products,
+      orders
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    a.download = `bioboxsys-backup-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setSystemSettings(prev => ({ ...prev, lastBackup: new Date() }));
   };
 
   return (
@@ -312,7 +341,7 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bell className="h-5 w-5" />
-                  <span>Configurações de Notificação</span>
+                  <span>Configura��ões de Notificação</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
