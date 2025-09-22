@@ -118,10 +118,18 @@ export default function Settings() {
     } catch {}
   };
 
-  const handleSaveSystemSettings = () => {
-    // Simulate save
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSaveSystemSettings = async () => {
+    try {
+      const key = 'system';
+      const payload = { ...systemSettings };
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+      } catch {}
+      localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {}
   };
 
   const handleBackup = async () => {
