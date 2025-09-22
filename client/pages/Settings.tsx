@@ -104,10 +104,18 @@ export default function Settings() {
   const { user } = useAuth();
   const { getUsers, getCustomers, getProducts, getOrders } = useSupabase();
 
-  const handleSaveUserSettings = () => {
-    // Simulate save
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSaveUserSettings = async () => {
+    try {
+      const key = `user:${user?.id || 'anonymous'}`;
+      const payload = { ...userSettings };
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+      } catch {}
+      localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {}
   };
 
   const handleSaveSystemSettings = () => {
