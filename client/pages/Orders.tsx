@@ -95,7 +95,7 @@ export default function OrdersSupabase() {
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
-  const { hasPermission } = useAuth();
+  const { checkPermission } = useAuth();
   const { getOrders, createOrder, updateOrder, isConnected } = useSupabase();
 
   useEffect(() => {
@@ -335,7 +335,7 @@ export default function OrdersSupabase() {
               )}
             </div>
           </div>
-          {hasPermission("orders", "create") && (
+          {checkPermission("orders", "create") && (
             <Button
               className="bg-biobox-green hover:bg-biobox-green-dark"
               onClick={() => setShowNewOrderForm(true)}
@@ -652,7 +652,7 @@ export default function OrdersSupabase() {
                               </Button>
                               {availableActions(order)
                                 .filter((a) =>
-                                  hasPermission("orders", a.perm.split(":")[1]),
+                                  checkPermission("orders", a.perm.split(":")[1]),
                                 )
                                 .map((action) => (
                                   <Button
@@ -670,7 +670,7 @@ export default function OrdersSupabase() {
                                     {action.label}
                                   </Button>
                                 ))}
-                              {hasPermission("orders", "edit") && (
+                              {checkPermission("orders", "edit") && (
                                 <Button variant="ghost" size="icon">
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -777,7 +777,7 @@ export default function OrdersSupabase() {
                     </Button>
                     {availableActions(selectedOrder)
                       .filter((a) =>
-                        hasPermission("orders", a.perm.split(":")[1]),
+                        checkPermission("orders", a.perm.split(":")[1]),
                       )
                       .map((a) => (
                         <Button
@@ -789,7 +789,7 @@ export default function OrdersSupabase() {
                           {a.label}
                         </Button>
                       ))}
-                    {hasPermission("orders", "edit") && (
+                    {checkPermission("orders", "edit") && (
                       <Button>
                         <Edit className="h-4 w-4 mr-2" />
                         Editar Pedido

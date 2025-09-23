@@ -8,19 +8,30 @@ import { useAuth } from "@/components/AuthProvider";
 export default function Index() {
   const { user } = useAuth();
 
+  const displayName = user?.name
+    ? user.name.split(" ")[0]
+    : user?.email?.split("@")[0];
+
+  const roleLabel =
+    user?.role === "admin"
+      ? "Administrador"
+      : user?.role === "vendedor"
+      ? "Vendedor"
+      : "Usuário";
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            Bem-vindo ao BioBoxsys, {user?.name.split(' ')[0]}
+            Bem-vindo ao BioBoxsys, {displayName}
           </h1>
           <p className="text-muted-foreground">
-            Sistema de Gerenciamento de Produção 
+            Sistema de Gerenciamento de Produção
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Logado como: {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}
+            Logado como: {roleLabel}
           </p>
         </div>
 

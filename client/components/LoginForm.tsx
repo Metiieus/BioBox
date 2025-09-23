@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate(); // 👈 hook do React Router
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +23,7 @@ export default function LoginForm() {
 
     try {
       await login(email, password);
+      navigate("/"); // 👈 redireciona pro dashboard após login
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

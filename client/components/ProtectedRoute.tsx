@@ -1,5 +1,5 @@
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 
 interface ProtectedRouteProps {
@@ -8,8 +8,12 @@ interface ProtectedRouteProps {
   action: string;
 }
 
-export default function ProtectedRoute({ children, module, action }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, hasPermission } = useAuth();
+export default function ProtectedRoute({
+  children,
+  module,
+  action,
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, checkPermission } = useAuth();
 
   if (isLoading) {
     return (
@@ -28,7 +32,7 @@ export default function ProtectedRoute({ children, module, action }: ProtectedRo
     return <Navigate to="/login" replace />;
   }
 
-  if (!hasPermission(module, action)) {
+  if (module && action && !checkPermission(module, action)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

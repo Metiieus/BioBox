@@ -31,26 +31,35 @@ const navigation = [
   { name: "Configurações", href: "/settings", icon: Settings },
 ];
 
+const getInitials = (name?: string) => {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+};
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { user, hasPermission, logout } = useAuth();
+  const { user, checkPermission, logout } = useAuth();
 
   // Filter navigation based on user permissions
-  const filteredNavigation = navigation.filter(item => {
+  const filteredNavigation = navigation.filter((item) => {
     if (!user) return false;
-    
+
     const moduleMap: Record<string, string> = {
-      '/': 'dashboard',
-      '/customers': 'customers',
-      '/orders': 'orders',
-      '/production': 'production',
-      '/products': 'products',
-      '/settings': 'settings'
+      "/": "dashboard",
+      "/customers": "customers",
+      "/orders": "orders",
+      "/production": "production",
+      "/products": "products",
+      "/settings": "settings",
     };
-    
+
     const module = moduleMap[item.href];
-    return module ? hasPermission(module, 'view') : false;
+    return module ? checkPermission(module, "view") : false;
   });
 
   return (
@@ -122,15 +131,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg" />
                   <AvatarFallback className="bg-biobox-green text-biobox-dark text-xs font-medium">
-                    {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                    {getInitials(user?.name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {user?.name || 'Usuário'}
+                    {user?.name || "Usuário"}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {user?.role === 'admin' ? 'Administrador' : 'Vendedor'}
+                    {user?.role === "admin" ? "Administrador" : "Vendedor"}
                   </p>
                 </div>
               </div>
@@ -178,7 +187,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback className="bg-biobox-green text-biobox-dark text-xs font-medium">
-                  {user?.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                  {getInitials(user?.name)}
                 </AvatarFallback>
               </Avatar>
             </div>

@@ -1,4 +1,4 @@
-import { ReactNode, createContext, useContext } from "react";
+import { ReactNode, createContext, useContext, useEffect } from "react";
 import { useAuthProvider } from "@/hooks/useAuth";
 
 interface AuthProviderProps {
@@ -31,6 +31,15 @@ export const useAuth = () => {
 // provider em volta da aplicação
 export default function AuthProvider({ children }: AuthProviderProps) {
   const auth = useAuthProvider();
+
+  // 👀 loga sempre que o estado do contexto mudar
+  useEffect(() => {
+    console.log("🔐 AuthProvider state atualizado:", {
+      user: auth.user,
+      isAuthenticated: auth.isAuthenticated,
+      isLoading: auth.isLoading,
+    });
+  }, [auth.user, auth.isAuthenticated, auth.isLoading]);
 
   return (
     <AuthContext.Provider value={auth}>
