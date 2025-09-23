@@ -3,13 +3,20 @@ import DashboardLayout from "@/components/DashboardLayout";
 import BarcodeGenerator from "@/components/BarcodeGenerator";
 import UserManagement from "@/components/UserManagement";
 import { useSupabase } from "@/hooks/useSupabase";
+import { useSupabase } from "@/hooks/useSupabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/components/AuthProvider";
@@ -29,7 +36,7 @@ import {
   RefreshCw,
   AlertTriangle,
   CheckCircle,
-  Clock
+  Clock,
 } from "lucide-react";
 
 interface UserSettings {
@@ -45,10 +52,10 @@ interface UserSettings {
     orderUpdates: boolean;
   };
   preferences: {
-    theme: 'light' | 'dark' | 'system';
-    language: 'pt-BR' | 'en-US';
-    dateFormat: 'dd/MM/yyyy' | 'MM/dd/yyyy' | 'yyyy-MM-dd';
-    currency: 'BRL' | 'USD';
+    theme: "light" | "dark" | "system";
+    language: "pt-BR" | "en-US";
+    dateFormat: "dd/MM/yyyy" | "MM/dd/yyyy" | "yyyy-MM-dd";
+    currency: "BRL" | "USD";
   };
 }
 
@@ -60,7 +67,7 @@ interface SystemSettings {
   taxId: string;
   lowStockThreshold: number;
   autoBackup: boolean;
-  backupFrequency: 'daily' | 'weekly' | 'monthly';
+  backupFrequency: "daily" | "weekly" | "monthly";
   lastBackup?: Date;
 }
 
@@ -76,14 +83,14 @@ export default function Settings() {
       push: true,
       lowStock: true,
       productionAlerts: true,
-      orderUpdates: false
+      orderUpdates: false,
     },
     preferences: {
-      theme: 'dark',
-      language: 'pt-BR',
-      dateFormat: 'dd/MM/yyyy',
-      currency: 'BRL'
-    }
+      theme: "dark",
+      language: "pt-BR",
+      dateFormat: "dd/MM/yyyy",
+      currency: "BRL",
+    },
   });
 
   const [systemSettings, setSystemSettings] = useState<SystemSettings>({
@@ -94,8 +101,8 @@ export default function Settings() {
     taxId: "12.345.678/0001-90",
     lowStockThreshold: 5,
     autoBackup: true,
-    backupFrequency: 'daily',
-    lastBackup: new Date()
+    backupFrequency: "daily",
+    lastBackup: new Date(),
   });
 
   const [saved, setSaved] = useState(false);
@@ -184,7 +191,11 @@ export default function Settings() {
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="notifications">Notificações</TabsTrigger>
@@ -227,7 +238,12 @@ export default function Settings() {
                       <Input
                         id="name"
                         value={userSettings.name}
-                        onChange={(e) => setUserSettings(prev => ({ ...prev, name: e.target.value }))}
+                        onChange={(e) =>
+                          setUserSettings((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div>
@@ -236,7 +252,12 @@ export default function Settings() {
                         id="email"
                         type="email"
                         value={userSettings.email}
-                        onChange={(e) => setUserSettings(prev => ({ ...prev, email: e.target.value }))}
+                        onChange={(e) =>
+                          setUserSettings((prev) => ({
+                            ...prev,
+                            email: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div>
@@ -244,7 +265,12 @@ export default function Settings() {
                       <Input
                         id="phone"
                         value={userSettings.phone}
-                        onChange={(e) => setUserSettings(prev => ({ ...prev, phone: e.target.value }))}
+                        onChange={(e) =>
+                          setUserSettings((prev) => ({
+                            ...prev,
+                            phone: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                     <div>
@@ -252,12 +278,20 @@ export default function Settings() {
                       <Input
                         id="role"
                         value={userSettings.role}
-                        onChange={(e) => setUserSettings(prev => ({ ...prev, role: e.target.value }))}
+                        onChange={(e) =>
+                          setUserSettings((prev) => ({
+                            ...prev,
+                            role: e.target.value,
+                          }))
+                        }
                       />
                     </div>
                   </div>
 
-                  <Button onClick={handleSaveUserSettings} className="w-full bg-biobox-green hover:bg-biobox-green-dark">
+                  <Button
+                    onClick={handleSaveUserSettings}
+                    className="w-full bg-biobox-green hover:bg-biobox-green-dark"
+                  >
                     <Save className="h-4 w-4 mr-2" />
                     Salvar Alterações
                   </Button>
@@ -274,12 +308,14 @@ export default function Settings() {
                 <CardContent className="space-y-4">
                   <div>
                     <Label htmlFor="theme">Tema</Label>
-                    <Select 
-                      value={userSettings.preferences.theme} 
-                      onValueChange={(value: any) => setUserSettings(prev => ({ 
-                        ...prev, 
-                        preferences: { ...prev.preferences, theme: value }
-                      }))}
+                    <Select
+                      value={userSettings.preferences.theme}
+                      onValueChange={(value: any) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          preferences: { ...prev.preferences, theme: value },
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -294,18 +330,22 @@ export default function Settings() {
 
                   <div>
                     <Label htmlFor="language">Idioma</Label>
-                    <Select 
-                      value={userSettings.preferences.language} 
-                      onValueChange={(value: any) => setUserSettings(prev => ({ 
-                        ...prev, 
-                        preferences: { ...prev.preferences, language: value }
-                      }))}
+                    <Select
+                      value={userSettings.preferences.language}
+                      onValueChange={(value: any) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          preferences: { ...prev.preferences, language: value },
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
+                        <SelectItem value="pt-BR">
+                          Português (Brasil)
+                        </SelectItem>
                         <SelectItem value="en-US">English (US)</SelectItem>
                       </SelectContent>
                     </Select>
@@ -313,12 +353,17 @@ export default function Settings() {
 
                   <div>
                     <Label htmlFor="dateFormat">Formato de Data</Label>
-                    <Select 
-                      value={userSettings.preferences.dateFormat} 
-                      onValueChange={(value: any) => setUserSettings(prev => ({ 
-                        ...prev, 
-                        preferences: { ...prev.preferences, dateFormat: value }
-                      }))}
+                    <Select
+                      value={userSettings.preferences.dateFormat}
+                      onValueChange={(value: any) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          preferences: {
+                            ...prev.preferences,
+                            dateFormat: value,
+                          },
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -333,12 +378,14 @@ export default function Settings() {
 
                   <div>
                     <Label htmlFor="currency">Moeda</Label>
-                    <Select 
-                      value={userSettings.preferences.currency} 
-                      onValueChange={(value: any) => setUserSettings(prev => ({ 
-                        ...prev, 
-                        preferences: { ...prev.preferences, currency: value }
-                      }))}
+                    <Select
+                      value={userSettings.preferences.currency}
+                      onValueChange={(value: any) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          preferences: { ...prev.preferences, currency: value },
+                        }))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -367,75 +414,113 @@ export default function Settings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Notificações por E-mail</p>
-                      <p className="text-sm text-muted-foreground">Receber alertas por e-mail</p>
+                      <p className="text-sm text-muted-foreground">
+                        Receber alertas por e-mail
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userSettings.notifications.email}
-                      onCheckedChange={(checked) => setUserSettings(prev => ({
-                        ...prev,
-                        notifications: { ...prev.notifications, email: checked }
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            email: checked,
+                          },
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Notificações Push</p>
-                      <p className="text-sm text-muted-foreground">Alertas no navegador</p>
+                      <p className="text-sm text-muted-foreground">
+                        Alertas no navegador
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userSettings.notifications.push}
-                      onCheckedChange={(checked) => setUserSettings(prev => ({
-                        ...prev,
-                        notifications: { ...prev.notifications, push: checked }
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            push: checked,
+                          },
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Alertas de Estoque Baixo</p>
-                      <p className="text-sm text-muted-foreground">Quando produtos atingirem estoque mínimo</p>
+                      <p className="text-sm text-muted-foreground">
+                        Quando produtos atingirem estoque mínimo
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userSettings.notifications.lowStock}
-                      onCheckedChange={(checked) => setUserSettings(prev => ({
-                        ...prev,
-                        notifications: { ...prev.notifications, lowStock: checked }
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            lowStock: checked,
+                          },
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Alertas de Produção</p>
-                      <p className="text-sm text-muted-foreground">Problemas e atrasos na produção</p>
+                      <p className="text-sm text-muted-foreground">
+                        Problemas e atrasos na produção
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userSettings.notifications.productionAlerts}
-                      onCheckedChange={(checked) => setUserSettings(prev => ({
-                        ...prev,
-                        notifications: { ...prev.notifications, productionAlerts: checked }
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            productionAlerts: checked,
+                          },
+                        }))
+                      }
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Atualizações de Pedidos</p>
-                      <p className="text-sm text-muted-foreground">Mudanças de status dos pedidos</p>
+                      <p className="text-sm text-muted-foreground">
+                        Mudanças de status dos pedidos
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={userSettings.notifications.orderUpdates}
-                      onCheckedChange={(checked) => setUserSettings(prev => ({
-                        ...prev,
-                        notifications: { ...prev.notifications, orderUpdates: checked }
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setUserSettings((prev) => ({
+                          ...prev,
+                          notifications: {
+                            ...prev.notifications,
+                            orderUpdates: checked,
+                          },
+                        }))
+                      }
                     />
                   </div>
                 </div>
 
-                <Button onClick={handleSaveUserSettings} className="bg-biobox-green hover:bg-biobox-green-dark">
+                <Button
+                  onClick={handleSaveUserSettings}
+                  className="bg-biobox-green hover:bg-biobox-green-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Configurações
                 </Button>
@@ -458,7 +543,12 @@ export default function Settings() {
                     <Input
                       id="companyName"
                       value={systemSettings.companyName}
-                      onChange={(e) => setSystemSettings(prev => ({ ...prev, companyName: e.target.value }))}
+                      onChange={(e) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          companyName: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -466,7 +556,12 @@ export default function Settings() {
                     <Input
                       id="taxId"
                       value={systemSettings.taxId}
-                      onChange={(e) => setSystemSettings(prev => ({ ...prev, taxId: e.target.value }))}
+                      onChange={(e) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          taxId: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -475,7 +570,12 @@ export default function Settings() {
                       id="companyEmail"
                       type="email"
                       value={systemSettings.companyEmail}
-                      onChange={(e) => setSystemSettings(prev => ({ ...prev, companyEmail: e.target.value }))}
+                      onChange={(e) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          companyEmail: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                   <div>
@@ -483,7 +583,12 @@ export default function Settings() {
                     <Input
                       id="companyPhone"
                       value={systemSettings.companyPhone}
-                      onChange={(e) => setSystemSettings(prev => ({ ...prev, companyPhone: e.target.value }))}
+                      onChange={(e) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          companyPhone: e.target.value,
+                        }))
+                      }
                     />
                   </div>
                 </div>
@@ -493,21 +598,36 @@ export default function Settings() {
                   <Input
                     id="address"
                     value={systemSettings.address}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, address: e.target.value }))}
+                    onChange={(e) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        address: e.target.value,
+                      }))
+                    }
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="lowStockThreshold">Limite Mínimo de Estoque</Label>
+                  <Label htmlFor="lowStockThreshold">
+                    Limite Mínimo de Estoque
+                  </Label>
                   <Input
                     id="lowStockThreshold"
                     type="number"
                     value={systemSettings.lowStockThreshold}
-                    onChange={(e) => setSystemSettings(prev => ({ ...prev, lowStockThreshold: parseInt(e.target.value) }))}
+                    onChange={(e) =>
+                      setSystemSettings((prev) => ({
+                        ...prev,
+                        lowStockThreshold: parseInt(e.target.value),
+                      }))
+                    }
                   />
                 </div>
 
-                <Button onClick={handleSaveSystemSettings} className="bg-biobox-green hover:bg-biobox-green-dark">
+                <Button
+                  onClick={handleSaveSystemSettings}
+                  className="bg-biobox-green hover:bg-biobox-green-dark"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   Salvar Configurações
                 </Button>
@@ -536,25 +656,31 @@ export default function Settings() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">Backup Automático</p>
-                      <p className="text-sm text-muted-foreground">Fazer backup regularmente</p>
+                      <p className="text-sm text-muted-foreground">
+                        Fazer backup regularmente
+                      </p>
                     </div>
-                    <Switch 
+                    <Switch
                       checked={systemSettings.autoBackup}
-                      onCheckedChange={(checked) => setSystemSettings(prev => ({
-                        ...prev,
-                        autoBackup: checked
-                      }))}
+                      onCheckedChange={(checked) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          autoBackup: checked,
+                        }))
+                      }
                     />
                   </div>
 
                   <div>
                     <Label htmlFor="backupFrequency">Frequência</Label>
-                    <Select 
-                      value={systemSettings.backupFrequency} 
-                      onValueChange={(value: any) => setSystemSettings(prev => ({ 
-                        ...prev, 
-                        backupFrequency: value
-                      }))}
+                    <Select
+                      value={systemSettings.backupFrequency}
+                      onValueChange={(value: any) =>
+                        setSystemSettings((prev) => ({
+                          ...prev,
+                          backupFrequency: value,
+                        }))
+                      }
                       disabled={!systemSettings.autoBackup}
                     >
                       <SelectTrigger>
@@ -572,12 +698,16 @@ export default function Settings() {
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
                       <span>
-                        Último backup: {systemSettings.lastBackup.toLocaleString('pt-BR')}
+                        Último backup:{" "}
+                        {systemSettings.lastBackup.toLocaleString("pt-BR")}
                       </span>
                     </div>
                   )}
 
-                  <Button onClick={handleSaveSystemSettings} className="w-full bg-biobox-green hover:bg-biobox-green-dark">
+                  <Button
+                    onClick={handleSaveSystemSettings}
+                    className="w-full bg-biobox-green hover:bg-biobox-green-dark"
+                  >
                     <Save className="h-4 w-4 mr-2" />
                     Salvar Configurações
                   </Button>
@@ -593,11 +723,16 @@ export default function Settings() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Faça backup manual dos dados quando necessário. O arquivo será baixado automaticamente.
+                    Faça backup manual dos dados quando necessário. O arquivo
+                    será baixado automaticamente.
                   </p>
 
                   <div className="space-y-2">
-                    <Button onClick={handleBackup} className="w-full" variant="outline">
+                    <Button
+                      onClick={handleBackup}
+                      className="w-full"
+                      variant="outline"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       Fazer Backup Agora
                     </Button>
@@ -624,10 +759,14 @@ export default function Settings() {
                   <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
                     <div className="flex items-center space-x-2">
                       <AlertTriangle className="h-4 w-4 text-orange-500" />
-                      <p className="text-sm font-medium text-orange-500">Importante</p>
+                      <p className="text-sm font-medium text-orange-500">
+                        Importante
+                      </p>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Mantenha backups regulares em local seguro. Em caso de perda de dados, o backup mais recente será usado para restauração.
+                      Mantenha backups regulares em local seguro. Em caso de
+                      perda de dados, o backup mais recente será usado para
+                      restauração.
                     </p>
                   </div>
                 </CardContent>

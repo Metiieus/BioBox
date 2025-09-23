@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
+import { AuthUser, AuthState } from "@/types/auth";
+import { useSupabase, User } from "./useSupabase";
 import { supabase } from "@/lib/supabase";
-import { AuthUser } from "@/types/auth";
-import { AuthContext } from "@/contexts/AuthContext";
 
 interface AuthState {
   user: AuthUser | null;
@@ -19,13 +19,14 @@ const buildAuthUser = async (user: any): Promise<AuthUser> => {
   };
 };
 
-const persistAuthUser = (user: AuthUser | null) => {
-  if (!isBrowser) return;
-  if (user) {
-    localStorage.setItem("bioboxsys_user", JSON.stringify(user));
-  } else {
-    localStorage.removeItem("bioboxsys_user");
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within AuthProvider");
   }
+  return context;
 };
 
 export function useAuthProvider() {
@@ -35,142 +36,101 @@ export function useAuthProvider() {
     isLoading: true,
   });
 
-  // Verifica sessão inicial
-  const checkAuthState = useCallback(async () => {
-    setAuthState((prev) => ({ ...prev, isLoading: true })); // corrigido
+  const { getUsers } = useSupabase();
 
-    try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+  useEffect(() => {
+    checkAuthState();
+  }, []);
 
-      if (error) {
-        console.error("Erro ao verificar sessão:", error);
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-        return;
-      }
-
-      if (session?.user) {
-        const authUser = await buildAuthUser(session.user);
-        persistAuthUser(authUser);
-        setAuthState({
-          user: authUser,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-        return;
-      }
-
-      const storedUser = isBrowser
-        ? localStorage.getItem("bioboxsys_user")
-        : null;
-      if (storedUser) {
-        const user = JSON.parse(storedUser) as AuthUser;
+  const checkAuthState = async () => {
+    // Check for stored auth
+    const storedUser = localStorage.getItem("bioboxsys_user");
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
         setAuthState({
           user,
           isAuthenticated: true,
           isLoading: false,
         });
-        return;
+      } catch {
+        localStorage.removeItem("bioboxsys_user");
+        setAuthState((prev) => ({ ...prev, isLoading: false }));
       }
-
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-    } catch (error) {
-      console.error("Erro ao verificar estado de autenticação:", error);
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+    } else {
+      setAuthState((prev) => ({ ...prev, isLoading: false }));
     }
-  }, []);
-
-  // Escuta mudanças de sessão
-  useEffect(() => {
-    checkAuthState();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        buildAuthUser(session.user).then((authUser) => {
-          persistAuthUser(authUser);
-          setAuthState({
-            user: authUser,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        });
-      } else {
-        persistAuthUser(null);
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [checkAuthState]);
+  };
 
   // Função de login
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Try Supabase Auth first
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({ email, password });
+      if (!authError && authData.user) {
+        // Load profile from users table
+        let profile: User | null = null;
+        try {
+          const { data } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", authData.user.id)
+            .single();
+          profile = data as any;
+        } catch {}
 
-      if (error || !data.session?.user) {
-        const message = error?.message ?? "Credenciais inválidas";
-        console.error("Erro ao realizar login:", message);
-        throw new Error(message);
+        const authUser: AuthUser = {
+          id: authData.user.id,
+          name:
+            profile?.name || authData.user.email?.split("@")[0] || "Usuário",
+          email: authData.user.email || email,
+          role: (profile?.role as any) || "seller",
+          permissions: (profile?.permissions as any) || [],
+        };
+
+        localStorage.setItem("bioboxsys_user", JSON.stringify(authUser));
+        setAuthState({
+          user: authUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return true;
       }
 
-      const authUser = await buildAuthUser(data.session.user); // corrigido
-      persistAuthUser(authUser);
-      setAuthState({
-        user: authUser,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-
-      return true;
+      // Fallback demo login using local/mock users (password === 'password')
+      const users = await getUsers();
+      const user = users.find((u) => u.email === email);
+      if (user && password === "password") {
+        const authUser: AuthUser = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role as any,
+          permissions: user.permissions,
+        };
+        localStorage.setItem("bioboxsys_user", JSON.stringify(authUser));
+        setAuthState({
+          user: authUser,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error("Erro no login:", error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error("Não foi possível realizar o login.");
+      return false;
     }
   };
 
-  // Função de logout
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("Erro ao realizar logout:", error);
-    } finally {
-      persistAuthUser(null);
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
-    }
+  const logout = () => {
+    localStorage.removeItem("bioboxsys_user");
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    });
   };
 
   // Exemplo de checagem de permissão
@@ -178,14 +138,22 @@ export function useAuthProvider() {
     // Aqui você pode implementar regras de permissão baseadas no usuário
     // Exemplo simples:
     if (!authState.user) return false;
-    return true;
+    if (authState.user.role === "admin") return true;
+
+    // Check specific permissions
+    const permission = `${module}:${action}`;
+    return (
+      authState.user.permissions.includes(permission) ||
+      authState.user.permissions.includes("all")
+    );
   };
 
   return {
     ...authState,
     login,
     logout,
-    checkAuthState,
-    checkPermission,
+    hasPermission,
   };
-}
+};
+
+export { AuthContext };
