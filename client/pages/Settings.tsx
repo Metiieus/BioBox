@@ -19,11 +19,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/components/AuthProvider";
-import { 
-  Settings as SettingsIcon, 
-  User, 
-  Bell, 
-  Shield, 
+import {
+  Settings as SettingsIcon,
+  User,
+  Bell,
+  Shield,
   Database,
   QrCode,
   Printer,
@@ -110,11 +110,15 @@ export default function Settings() {
 
   const handleSaveUserSettings = async () => {
     try {
-      const key = `user:${user?.id || 'anonymous'}`;
+      const key = `user:${user?.id || "anonymous"}`;
       const payload = { ...userSettings };
       try {
-        const { supabase } = await import('@/lib/supabase');
-        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+        const { supabase } = await import("@/lib/supabase");
+        await supabase
+          .from("settings")
+          .upsert([
+            { key, value: payload, updated_at: new Date().toISOString() },
+          ]);
       } catch {}
       localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
       setSaved(true);
@@ -124,11 +128,15 @@ export default function Settings() {
 
   const handleSaveSystemSettings = async () => {
     try {
-      const key = 'system';
+      const key = "system";
       const payload = { ...systemSettings };
       try {
-        const { supabase } = await import('@/lib/supabase');
-        await supabase.from('settings').upsert([{ key, value: payload, updated_at: new Date().toISOString() }]);
+        const { supabase } = await import("@/lib/supabase");
+        await supabase
+          .from("settings")
+          .upsert([
+            { key, value: payload, updated_at: new Date().toISOString() },
+          ]);
       } catch {}
       localStorage.setItem(`biobox_settings_${key}`, JSON.stringify(payload));
       setSaved(true);
@@ -141,22 +149,24 @@ export default function Settings() {
       getUsers(),
       getCustomers(),
       getProducts(),
-      getOrders()
+      getOrders(),
     ]);
 
     const payload = {
       meta: {
         generatedAt: new Date().toISOString(),
         app: "BioBoxsys",
-        version: 1
+        version: 1,
       },
       users,
       customers,
       products,
-      orders
+      orders,
     };
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -167,7 +177,7 @@ export default function Settings() {
     a.remove();
     URL.revokeObjectURL(url);
 
-    setSystemSettings(prev => ({ ...prev, lastBackup: new Date() }));
+    setSystemSettings((prev) => ({ ...prev, lastBackup: new Date() }));
   };
 
   return (
@@ -735,24 +745,52 @@ export default function Settings() {
                       <Download className="h-4 w-4 mr-2" />
                       Fazer Backup Agora
                     </Button>
-                    <Button className="w-full" variant="outline" onClick={() => document.getElementById('restore-input')?.click()}>
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() =>
+                        document.getElementById("restore-input")?.click()
+                      }
+                    >
                       <Upload className="h-4 w-4 mr-2" />
                       Restaurar Backup
                     </Button>
-                    <input id="restore-input" type="file" accept="application/json" className="hidden" onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const text = await file.text();
-                      try {
-                        const data = JSON.parse(text);
-                        if (data.users) localStorage.setItem('biobox_users', JSON.stringify(data.users));
-                        if (data.customers) localStorage.setItem('biobox_customers', JSON.stringify(data.customers));
-                        if (data.products) localStorage.setItem('biobox_products', JSON.stringify(data.products));
-                        if (data.orders) localStorage.setItem('biobox_orders', JSON.stringify(data.orders));
-                        setSaved(true);
-                        setTimeout(() => setSaved(false), 3000);
-                      } catch {}
-                    }} />
+                    <input
+                      id="restore-input"
+                      type="file"
+                      accept="application/json"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const text = await file.text();
+                        try {
+                          const data = JSON.parse(text);
+                          if (data.users)
+                            localStorage.setItem(
+                              "biobox_users",
+                              JSON.stringify(data.users),
+                            );
+                          if (data.customers)
+                            localStorage.setItem(
+                              "biobox_customers",
+                              JSON.stringify(data.customers),
+                            );
+                          if (data.products)
+                            localStorage.setItem(
+                              "biobox_products",
+                              JSON.stringify(data.products),
+                            );
+                          if (data.orders)
+                            localStorage.setItem(
+                              "biobox_orders",
+                              JSON.stringify(data.orders),
+                            );
+                          setSaved(true);
+                          setTimeout(() => setSaved(false), 3000);
+                        } catch {}
+                      }}
+                    />
                   </div>
 
                   <div className="p-3 bg-orange-500/10 border border-orange-500/20 rounded-lg">
