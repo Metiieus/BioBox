@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { handleDemo } from "./routes/demo";
-import { createUserAdmin } from "./routes/admin";
 
 export function createServer() {
   const app = express();
@@ -19,7 +18,29 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
-  app.post("/api/admin/create-user", createUserAdmin);
+
+  // Conditionally enable admin route only when Supabase env vars are present
+  const hasSupabaseAdmin =
+    Boolean(process.env.SUPABASE_SERVICE_ROLE) &&
+    Boolean(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+
+  if (hasSupabaseAdmin) {
+    // Lazy import to avoid initializing Supabase client when not configured
+    import("./routes/admin")
+      .then(({ createUserAdmin }) => {
+        app.post("/api/admin/create-user", createUserAdmin);
+      })
+      .catch((err) => {
+        console.warn(
+          "Admin routes disabled due to import error:",
+          (err as Error)?.message,
+        );
+      });
+  } else {
+    console.warn(
+      "Admin routes disabled: missing SUPABASE_URL/VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE.",
+    );
+  }
 
   return app;
 }
