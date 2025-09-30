@@ -152,6 +152,8 @@ export function useAuthProvider() {
     ...authState,
     login,
     logout,
+    checkPermission,
+    // backward compatibility
     hasPermission: checkPermission,
   };
 };
