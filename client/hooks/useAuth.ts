@@ -152,8 +152,10 @@ export function useAuthProvider() {
     ...authState,
     login,
     logout,
-    hasPermission,
+    checkPermission,
+    // backward compatibility
+    hasPermission: checkPermission,
   };
-};
+}
 
 export { AuthContext };
