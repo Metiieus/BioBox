@@ -152,7 +152,7 @@ export function useAuthProvider() {
     ...authState,
     login,
     logout,
-    hasPermission,
+    hasPermission: checkPermission,
   };
 };
 
