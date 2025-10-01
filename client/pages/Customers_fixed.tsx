@@ -23,11 +23,11 @@ import {
   Calendar,
   Loader2
 } from "lucide-react";
-import { Customer, mockCustomers } from "@/types/customer";
+import { Customer } from "@/types/customer";
 import { cn } from "@/lib/utils";
 import { useSupabase } from "@/hooks/useSupabase";
 
-export default function Customers() {
+export default function CustomersFixed() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>();
@@ -52,22 +52,18 @@ export default function Customers() {
 
       if (error) {
         console.error("❌ Erro ao carregar clientes:", error);
-        console.log("⚠️ Usando dados mock como fallback");
-        setCustomers(mockCustomers);
+        toast({
+          title: "Erro ao carregar clientes",
+          description: error.message,
+          variant: "destructive",
+        });
         return;
       }
 
       console.log("✅ Clientes carregados:", data?.length || 0);
       
-      // Se não há dados no Supabase, usar dados mock
-      if (!data || data.length === 0) {
-        console.log("📝 Nenhum cliente no banco, usando dados mock");
-        setCustomers(mockCustomers);
-        return;
-      }
-      
       // Mapear dados do Supabase para o formato esperado
-      const mappedCustomers: Customer[] = data.map(customer => ({
+      const mappedCustomers: Customer[] = (data || []).map(customer => ({
         id: customer.id,
         name: customer.name,
         email: customer.email,
@@ -94,8 +90,11 @@ export default function Customers() {
       setCustomers(mappedCustomers);
     } catch (error) {
       console.error("❌ Erro inesperado ao carregar clientes:", error);
-      console.log("⚠️ Usando dados mock como fallback");
-      setCustomers(mockCustomers);
+      toast({
+        title: "Erro inesperado",
+        description: "Não foi possível carregar os clientes",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -138,16 +137,19 @@ export default function Customers() {
 
         if (error) {
           console.error("❌ Erro ao atualizar cliente:", error);
-          // Fallback para atualização local
-          setCustomers(prev => prev.map(customer =>
-            customer.id === selectedCustomer.id
-              ? { ...customer, ...customerData, updatedAt: new Date() }
-              : customer
-          ));
-        } else {
-          console.log("✅ Cliente atualizado com sucesso");
-          await loadCustomers(); // Recarregar dados
+          toast({
+            title: "Erro ao atualizar cliente",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
         }
+
+        console.log("✅ Cliente atualizado com sucesso");
+        toast({
+          title: "Cliente atualizado",
+          description: "As informações do cliente foram atualizadas com sucesso",
+        });
       } else {
         // Criar novo cliente
         const { error } = await supabase
@@ -169,46 +171,33 @@ export default function Customers() {
 
         if (error) {
           console.error("❌ Erro ao criar cliente:", error);
-          // Fallback para criação local
-          const newCustomer: Customer = {
-            ...customerData,
-            id: Date.now().toString(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            totalOrders: 0,
-            totalSpent: 0
-          } as Customer;
-          setCustomers(prev => [newCustomer, ...prev]);
-        } else {
-          console.log("✅ Cliente criado com sucesso");
-          await loadCustomers(); // Recarregar dados
+          toast({
+            title: "Erro ao criar cliente",
+            description: error.message,
+            variant: "destructive",
+          });
+          return;
         }
+
+        console.log("✅ Cliente criado com sucesso");
+        toast({
+          title: "Cliente criado",
+          description: "O novo cliente foi cadastrado com sucesso",
+        });
       }
+
+      // Recarregar lista de clientes
+      await loadCustomers();
       
       setShowForm(false);
       setSelectedCustomer(undefined);
     } catch (error) {
       console.error("❌ Erro inesperado ao salvar cliente:", error);
-      // Fallback para operação local
-      if (selectedCustomer) {
-        setCustomers(prev => prev.map(customer =>
-          customer.id === selectedCustomer.id
-            ? { ...customer, ...customerData, updatedAt: new Date() }
-            : customer
-        ));
-      } else {
-        const newCustomer: Customer = {
-          ...customerData,
-          id: Date.now().toString(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          totalOrders: 0,
-          totalSpent: 0
-        } as Customer;
-        setCustomers(prev => [newCustomer, ...prev]);
-      }
-      setShowForm(false);
-      setSelectedCustomer(undefined);
+      toast({
+        title: "Erro inesperado",
+        description: "Não foi possível salvar o cliente",
+        variant: "destructive",
+      });
     } finally {
       setSaving(false);
     }
@@ -249,10 +238,10 @@ export default function Customers() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Gerenciamento de Clientes
+              Gerenciamento de Clientes (Supabase)
             </h1>
             <p className="text-muted-foreground">
-              Cadastre e gerencie seus clientes com persistência no Supabase
+              Cadastre e gerencie seus clientes com persistência no banco
             </p>
           </div>
           <Button
@@ -451,6 +440,7 @@ export default function Customers() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleEditCustomer(customer)}
+                          disabled={saving}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
